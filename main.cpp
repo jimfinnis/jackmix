@@ -9,13 +9,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <jack/jack.h>
 #include <string>
+
+#include "channel.h"
 
 #include "tokeniser.h"
 #include "tokens.h"
 
-jack_port_t *output_port;
+jack_port_t *output[2];
 
 /// table of midi note "frequencies" adjusted by sample rate
 jack_default_audio_sample_t note_frqs[128]; 
@@ -35,24 +36,25 @@ jack_default_audio_sample_t amp=0.0;
 
 jack_client_t *client;
 
+
+
 /*
  * JACK callbacks
  */
 
 int process(jack_nframes_t nframes, void *arg){
-    jack_default_audio_sample_t *out = 
-          (jack_default_audio_sample_t *)jack_port_get_buffer(output_port,
+    jack_default_audio_sample_t *outleft = 
+          (jack_default_audio_sample_t *)jack_port_get_buffer(output[0],
+                                                              nframes);
+    jack_default_audio_sample_t *outright = 
+          (jack_default_audio_sample_t *)jack_port_get_buffer(output[1],
                                                               nframes);
     return 0;
 }
-
-
-
 void jack_shutdown(void *arg)
 {
     exit(1);
 }
-
 int srate(jack_nframes_t nframes, void *arg)
 {
     printf("the sample rate is now %" PRIu32 "/sec\n", nframes);
@@ -65,9 +67,14 @@ void shutdown(){
     exit(0);
 }
 
+
+/*
+ * 
+ * Parser
+ *
+ */
+
 Tokeniser tok;
-
-
 std::string getnextident(){
     if(tok.getnext()!=T_IDENT)
         throw "syntax error";
@@ -93,10 +100,44 @@ void parse(const char *s){
 }
 
 
+/*
+ * Initialisation
+ *
+ */
+
 const char *init(const char *file){
     for(int i=0;i<MAXFRAMESIZE;i++){
         floatZeroes[i]=0.0f;
         floatOnes[i]=1.0f;
+    }
+    
+    
+    // start JACK
+    
+    if (!(client = jack_client_open("jackmix", JackNullOption, NULL))){
+        return "jack not running?";
+    }
+    // get the real sampling rate
+    samprate = (float)jack_get_sample_rate(client);
+
+    // set callbacks
+    jack_set_process_callback(client, process, 0);
+    jack_set_sample_rate_callback(client, srate, 0);
+    jack_on_shutdown(client, jack_shutdown, 0);
+    
+    output[0] = jack_port_register(
+                                   client, 
+                                   "out0", 
+                                   JACK_DEFAULT_AUDIO_TYPE, 
+                                   JackPortIsOutput, 0);
+    output[1] = jack_port_register(
+                                   client, 
+                                   "out1", 
+                                   JACK_DEFAULT_AUDIO_TYPE, 
+                                   JackPortIsOutput, 0);
+    
+    if (jack_activate(client)) {
+        return "cannot activate jack client";
     }
     
     // line by line parsing
@@ -120,28 +161,7 @@ const char *init(const char *file){
     }
     
     
-    // start JACK
     
-    if (!(client = jack_client_open("sonicaes", JackNullOption, NULL))){
-        return "jack not running?";
-    }
-    // get the real sampling rate
-    samprate = (float)jack_get_sample_rate(client);
-
-    // set callbacks
-    jack_set_process_callback(client, process, 0);
-    jack_set_sample_rate_callback(client, srate, 0);
-    jack_on_shutdown(client, jack_shutdown, 0);
-    
-    output_port = jack_port_register(
-                                     client, 
-                                     "out", 
-                                     JACK_DEFAULT_AUDIO_TYPE, 
-                                     JackPortIsOutput, 0);
-    
-    if (jack_activate(client)) {
-        return "cannot activate jack client";
-    }
     return NULL;
 }
 
