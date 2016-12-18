@@ -4,8 +4,16 @@
  *
  */
 
+#define MAXFRAMESIZE 1024
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <jack/jack.h>
+#include <string>
+
+#include "tokeniser.h"
+#include "tokens.h"
 
 jack_port_t *output_port;
 
@@ -32,9 +40,6 @@ jack_client_t *client;
  */
 
 int process(jack_nframes_t nframes, void *arg){
-    /// the actual synth currently running
-    static NoteCmd *curcmd=NULL;
-    
     jack_default_audio_sample_t *out = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output_port,
                                                               nframes);
@@ -60,16 +65,65 @@ void shutdown(){
     exit(0);
 }
 
-void init(){
+Tokeniser tok;
+
+
+std::string getnextident(){
+    if(tok.getnext()!=T_IDENT)
+        throw "syntax error";
+    return std::string(tok.getstring());
+}
+
+void parseChan(){
+    if(tok.getnext()!=T_COLON)
+        throw "expected ':'";
+    std::string s=getnextident();
+
+}
+
+void parse(const char *s){
+    tok.reset(s);
+    for(;;){
+        switch(tok.getnext()){
+        case T_CHANS:
+            parseChan();
+            break;
+        }
+    }
+}
+
+
+const char *init(const char *file){
     for(int i=0;i<MAXFRAMESIZE;i++){
         floatZeroes[i]=0.0f;
         floatOnes[i]=1.0f;
     }
     
+    // line by line parsing
+    try {
+        tok.init();
+        tok.setname("<in>");
+        tok.settokens(tokens);
+        tok.setcommentlinesequence("#");
+        
+        FILE *a = fopen(file,"r");
+        if(a){
+            while(!feof(a)){
+                char buf[1024];
+                char *bb = fgets(buf,1024,a);
+                if(bb)parse(bb);
+            }
+            fclose(a);
+        }
+    } catch(const char *s){
+        return s;
+    }
+    
+    
     // start JACK
     
     if (!(client = jack_client_open("sonicaes", JackNullOption, NULL))){
-        throw "jack not running?";
+        return "jack not running?";
     }
     // get the real sampling rate
     samprate = (float)jack_get_sample_rate(client);
@@ -86,12 +140,16 @@ void init(){
                                      JackPortIsOutput, 0);
     
     if (jack_activate(client)) {
-        throw "cannot activate jack client");
+        return "cannot activate jack client";
     }
+    return NULL;
 }
 
 int main(int argc,char *argv[]){
-    init();
+    if(const char *err = init("config")){
+        printf("fatal error: %s\n",err);
+        exit(1);
+    }
     sleep(10);
     shutdown();
 }

@@ -1,0 +1,22 @@
+# standard symbols
+
+*e      :   T_END
+*s      :   T_STRING
+*i      :   T_IDENT
+*n      :   T_INT
+*f      :   T_FLOAT
+
+*c,     :   T_COMMA
+*c;     :   T_SEMICOLON
+*c+     :   T_PLUS
+*c/     :   T_DIV
+*c-     :   T_MINUS
+*c*     :   T_MUL
+*c%     :   T_MOD
+*c:     :   T_COLON
+*c.     :   T_DOT
+
+*d->    :   T_ARROW
+
+chans : T_CHANS
+
