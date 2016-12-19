@@ -1,0 +1,25 @@
+Channel architecture:
+
+any number of inputs. Each input can be routed to any number of FX sends,
+either post- or pre-fade.
+Mono inputs are converted to stereo when sent, and the stereo return's gain
+is given in the fx chain's specification. Each fx chain has a return gain,
+an optional input gain, and a number of ladspa effects each with their
+own parameters.
+
+All values (gain, pans, fx params) have an optional ctrl channel name
+in brackets. This specifies a control channel which can change the value.
+Control channels have a name, an input (diamond variable, midi cc, OSC??)
+and a mapping to apply to the input range. Input ranges are all normalized
+to 0-1 (diamond has to make some assumptions here) before the mapping is
+applied.
+
+A single physical control input can control multiple control channels,
+so (say) midi cc 15 on midi channel 1 can control several gains and pans.
+
+Todo:
+* control channel parsing and testing
+* channel parsin
+* basic mixing and panning
+* effects chains
+
