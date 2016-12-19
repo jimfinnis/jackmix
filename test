@@ -1,0 +1,33 @@
+# how to do stereo/mono????
+
+# any value with an ident in brackets is an initialisation value
+# for something bound to a control (midi,Diamond) input.
+
+chans {
+    # actual inputs giving gain and any aux send
+    piano       0.5(a)         send reverb post 0.2,
+    guitar      0.2(b)
+}   
+    
+
+
+
+fx {
+    # loop name and return gain: chain of effects and params
+    reverb 0.5(c) in 0.8:
+        gverb {...}, spatializer {...}
+}
+    
+
+# the control inputs specified above. Requires some kind of
+# range remapping / log scaling parameters.
+
+ctrl {
+    a: knobs/1 in 0:1024 log,
+    b: knobs/2 in 0:1024 out -1:1,
+    c: knobs/3 in 0:1024
+}
+    
+
+    
+    

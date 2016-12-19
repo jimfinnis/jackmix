@@ -1,0 +1,36 @@
+program = { channels | effectloops | ctrls };
+
+channels = 'chans' '{' channellist '}';
+channellist = channel
+    | channel ',' channellist;
+
+effectloops = 'fx' '{'  effectlooplist '}';
+effectlooplist = effectloop
+    | effectlooplist ',' effectloop;
+    
+
+ctrls  =  'ctrl' '{' ctrllist  '}';
+ctrllist = ctrl
+    | ctrl ',' ctrllist;
+
+
+# channel is name, default value (control name) and optional send
+
+channel = ident gain [sendinfo];
+sendinfo = 'send' ident ('post'|'pre') gain;
+gain = value;
+
+value = number [ '(' ctrlname ')' ];
+
+ctrl = diamondctrl | TBD
+
+diamondctrl = ident ':' diamondname [inrangespec] ['log'] [outrangespec];
+
+inrangespec = 'in' number ': number;
+outrangespec = 'out' number ': number;
+
+
+
+
+effectloop = TBD
+    

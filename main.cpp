@@ -13,6 +13,7 @@
 #include <string>
 
 #include "channel.h"
+#include "ctrl.h"
 
 #include "tokeniser.h"
 #include "tokens.h"
@@ -32,9 +33,10 @@ float samprate = 0;
 jack_client_t *client;
 
 /*
- * Processing. Panning is 0 to 1, using a sin/cos taper.
+ * Processing.
  */
 
+// mono panning using a sin/cos taper to avoid the 6db drop at the centre
 void panmono(float *__restrict left,
              float *__restrict right,
              float *__restrict in,
@@ -47,6 +49,7 @@ void panmono(float *__restrict left,
     }
 }
 
+// stereo panning (balance) using a linear taper
 void panstereo(float *__restrict leftout,
                float *__restrict rightout,
                float *__restrict leftin,
@@ -125,6 +128,26 @@ std::string getnextident(){
         throw "syntax error";
     return std::string(tok.getstring());
 }
+
+// values are <number>['('<ctrl>')']
+Value *parseValue(){
+    float n = tok.getnextfloat();
+    if(tok.iserror())throw "expected a number";
+    
+    Value *v = new Value();
+    v->setdef(n);
+    
+    if(tok.getnext()==T_OPREN){
+        // there is a controller for this value!
+        std::string name = getnextident();
+        Ctrl *c = Ctrl::createOrFind(name);
+        c->addval(v);
+        if(tok.getnext()!=T_CPREN)
+            throw "expected a ')'";
+    } else
+        tok.rewind();
+}
+    
 
 void parseChan(){
     if(tok.getnext()!=T_COLON)
