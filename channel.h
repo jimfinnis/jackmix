@@ -12,16 +12,17 @@
 // input channel structure
 
 class Channel {
-    static const int MAXPORTS=4;
+    static const int MAXPORTS=2;
     
     std::string name;
-    int chans; // up to 4, any more is a bit silly.
+    int chans; // 1 or 2
     
 public:
     Channel(std::string n,int ch){
         extern jack_client_t *client;
-        if(ch>MAXPORTS)
-            throw "too many chans";
+        if(ch>MAXPORTS || !ch)
+            throw "too many chans (or too few)";
+        name = n;
         for(int i=0;i<ch;i++){
             port[i] = jack_port_register(
                                          client,

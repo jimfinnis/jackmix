@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 #include <string>
 
 #include "channel.h"
@@ -16,10 +17,9 @@
 #include "tokeniser.h"
 #include "tokens.h"
 
-jack_port_t *output[2];
+static const float PI = 3.1415927f;
 
-/// table of midi note "frequencies" adjusted by sample rate
-jack_default_audio_sample_t note_frqs[128]; 
+jack_port_t *output[2];
 
 /// array of zeroes
 float floatZeroes[MAXFRAMESIZE];
@@ -28,27 +28,72 @@ float floatOnes[MAXFRAMESIZE];
 
 /// sample rate 
 float samprate = 0;
-/// frequency of note being played
-float keyFreq = 440.0;
-
-/// various other globals
-jack_default_audio_sample_t amp=0.0;
 
 jack_client_t *client;
 
+/*
+ * Processing. Panning is 0 to 1, using a sin/cos taper.
+ */
 
+void panmono(float *__restrict left,
+             float *__restrict right,
+             float *__restrict in,
+             float pan,float amp,int n){
+    float ampl = cosf(pan*PI*0.5f);
+    float ampr = sinf(pan*PI*0.5f);
+    for(int i=0;i<n;i++){
+        *left++ = *in * ampl;
+        *right++ = *in++ * ampr;
+    }
+}
+
+void panstereo(float *__restrict leftout,
+               float *__restrict rightout,
+               float *__restrict leftin,
+               float *__restrict rightin,
+               float pan,float amp,int n){
+    if(pan<0.5f){
+        for(int i=0;i<n;i++){
+            *leftout++ = *leftin++;
+            *rightout++ = *rightin++ * pan*2.0f;
+        }
+    } else {
+        pan = 1.0f-pan;
+        for(int i=0;i<n;i++){
+            *leftout++ = *leftin++ * pan*2.0f;
+            *rightout++ = *rightin++;
+        }
+    }
+        
+}
+
+
+static const unsigned int BUFSIZE=1024;
+
+void subproc(float *left,float *right,int n){
+    static float tmp[BUFSIZE];
+    
+}
 
 /*
  * JACK callbacks
  */
 
+
 int process(jack_nframes_t nframes, void *arg){
-    jack_default_audio_sample_t *outleft = 
+    float *outleft = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output[0],
                                                               nframes);
-    jack_default_audio_sample_t *outright = 
+    float *outright = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output[1],
                                                               nframes);
+    
+    static float buf[BUFSIZE];
+    unsigned int i;
+    for(i=0;i<nframes-BUFSIZE;i+=BUFSIZE){
+        subproc(outleft+i,outright+i,BUFSIZE);
+    }
+    subproc(outleft+i,outright+i,nframes-i);
     return 0;
 }
 void jack_shutdown(void *arg)
