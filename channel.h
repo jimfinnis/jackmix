@@ -8,32 +8,47 @@
 #define __CHANNEL_H
 
 #include <jack/jack.h>
+#include <vector>
+#include <string>
+#include "value.h"
 
 // input channel structure
 
 class Channel {
-    static const int MAXPORTS=2;
-    
     std::string name;
-    int chans; // 1 or 2
+    bool mono;
     
-public:
-    Channel(std::string n,int ch){
+    Value *pan,*gain;
+    
+    static std::vector<Channel *> chans;
+    
+    static jack_port_t *makePort(std::string pname){
         extern jack_client_t *client;
-        if(ch>MAXPORTS || !ch)
-            throw "too many chans (or too few)";
-        name = n;
-        for(int i=0;i<ch;i++){
-            port[i] = jack_port_register(
-                                         client,
-                                         (name+std::to_string(i)).c_str(),
-                                         JACK_DEFAULT_AUDIO_TYPE, 
-                                         JackPortIsOutput, 0);
-        }
-        chans = ch;
+        return jack_port_register(
+                                  client,
+                                  pname.c_str(),
+                                  JACK_DEFAULT_AUDIO_TYPE, 
+                                  JackPortIsOutput, 0);
     }
     
-    jack_port_t *port[MAXPORTS];
+public:
+    Channel(std::string n,int ch,Value *g,Value *p){
+        name = n;
+        mono = ch==1;
+        gain = g;
+        pan = p;
+        
+        if(mono){
+            leftport = makePort(n);
+        } else {
+            leftport = makePort(n+"_L");
+            rightport = makePort(n+"_R");
+        }
+        chans.push_back(this);
+    }
+    
+    // if mono, only leftport is used
+    jack_port_t *leftport,*rightport;
 };
     
     

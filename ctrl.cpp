@@ -19,3 +19,17 @@ Ctrl *Ctrl::createOrFind(std::string name){
     }
     return v;
 }
+
+void Ctrl::checkAllCtrlsForValueDBAgreement(){
+    std::unordered_map<std::string,Ctrl *>::iterator it;
+    for(it=map.begin();it!=map.end();it++){
+        Ctrl *c = it->second;
+        std::vector<Value *>::iterator iv;
+        for(iv=c->values.begin();iv!=c->values.end();iv++){
+            Value *v = *iv;
+            if(v->db != c->db){
+                throw "DB should match values and channels";
+            }
+        }
+    }
+}

@@ -29,16 +29,17 @@
 
 class Ctrl {
     /// is this a -60 to 0 decibel scale, or a 0 to 1 linear scale?
-    bool logscale;
+    bool db;
     /// the input mapping values, which convert the data coming
-    /// in into the 0-1 range. If logscale is true,
+    /// in into the 0-1 range. If db is true,
     /// they instead map onto the -60 - 0 range.
     float inmin,inmax;
     
     /// the output mapping values, which convert the data in 0-1
-    /// range (i.e. after input mapping and any decibel->ratio
-    /// conversion) into the final value. You'd probably not use
-    /// these for logscale, but it is still available.
+    /// or -60 to 0 range
+    /// range (i.e. after input mapping into the final value.
+    /// You'd probably not use these for db, but it is still
+    /// available. Decibel->ratio conversion is done in the value.
     float outmin,outmax;
     
     /// A list of the values this ctrl controls
@@ -52,14 +53,14 @@ public:
     
     
     Ctrl(){
-        logscale=false;
+        db=false;
         inmin=0;inmax=1;
         outmin=0;outmax=1;
     }
         
     // fluent modifiers
     Ctrl *setlog(){
-        logscale = true;
+        db = true;
         return this;
     }
     Ctrl *setinrange(float mn,float mx){
@@ -71,7 +72,9 @@ public:
         return this;
     }
     
-    /// add a value to be managed by this control
+    /// add a value to be managed by this control. DB controllers
+    /// must control DB values, but we don't check that here - we
+    /// do it after all parsing.
     void addval(Value *v){
         values.push_back(v);
     }
@@ -80,14 +83,19 @@ public:
     /// individual values
     void setval(float v){
         v = (v-inmin)/(inmax-inmin);
-        if(logscale)v=v*60.0f-60.0f;
+        if(db)v=v*60.0f-60.0f;
         v = v*(outmax-outmin)+outmin;
         
         std::vector<Value *>::iterator it;
         for(it=values.begin();it!=values.end();it++){
-            (*it)->value = v;
+            (*it)->setTarget(v);
         }
     }
+    
+    /// make sure all the values in all db controls are db, and
+    /// all values in non-db controls are non-db.
+    static void checkAllCtrlsForValueDBAgreement();
+        
 };   
     
 

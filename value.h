@@ -7,32 +7,82 @@
 #ifndef __VALUE_H
 #define __VALUE_H
 
+#include <math.h>
+#include <vector>
+
 // these are the values used in the mixer: pan positions, gains etc.
 // and effect parameters. They can either be constants, or have a default
 // value but be modifiable from a control channel.
 
 class Value {
+    friend class Ctrl;
+    
     /// the post-conversion default value
     float deflt;
+    /// the current value, set from the LPF
+    float value;
+    /// the target value, input to the LPF
+    float target;
+    
+    /// if true, value is expected to be -60 - 0 and is converted
+    /// to a ratio 0-1 on get. Any ctrl value should also be log
+    /// scale.
+    bool db;
+    
+    /// list of all values
+    static std::vector<Value *> values;
+    
     
 public:
     Value(){
         deflt=0;
+        db=false;
+        values.push_back(this);
     }
     
-    /// the current value
-    float value;
-    
+    /// set the default
     Value *setdef(float def){
         deflt=def;
-        value=def;
+        return this;
+    }
+    /// set DB (decibel conversion will be done on get)
+    Value *setdb(){
+        db=true;
         return this;
     }
     
-    /// reset to default
+    /// set the value from a control - actually sets the target
+    /// value of an LPF to avoid artifacts. The value itself is set
+    /// in update()
+    
+    void setTarget(float v){
+        target=v;
+    }
+    
+    /// get the value, performing db conversion if required
+    float get(){
+        if(db)
+            return powf(10.0,value*0.1f);
+        else
+            return value;
+    }
+            
+    
+    /// reset value and target to default
     void reset(){
         value=deflt;
+        target=deflt;
     }
+    
+    /// perform periodic update
+    void update(){
+        value = value*0.9f + target*0.1f;
+    }
+    
+    /// update all values
+    static void updateAll();
+        
+    
           
 };   
                 

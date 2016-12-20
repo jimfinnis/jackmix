@@ -137,6 +137,11 @@ Value *parseValue(){
     Value *v = new Value();
     v->setdef(n);
     
+    if(tok.getnext()==T_DB)
+        v->setdb();
+    else
+        tok.rewind();
+    
     if(tok.getnext()==T_OPREN){
         // there is a controller for this value!
         std::string name = getnextident();
@@ -146,22 +151,58 @@ Value *parseValue(){
             throw "expected a ')'";
     } else
         tok.rewind();
+    return v;
 }
     
 
 void parseChan(){
     if(tok.getnext()!=T_COLON)
         throw "expected ':'";
-    std::string s=getnextident();
-
+    std::string name=getnextident();
+    
+    if(tok.getnext()!=T_GAIN)
+        throw "expected 'gain'";
+    Value *gain = parseValue();
+    
+    if(tok.getnext()!=T_PAN)
+        throw "expected 'pan'";
+    Value *pan = parseValue();
+    
+    bool mono=false;
+    switch(tok.getnext()){
+    case T_MONO:mono=true;
+    case T_STEREO:break;
+    default:tok.rewind();break;
+    }
+    
+    if(tok.getnext()==T_SEND){
+        throw "FX not implemented yet";
+    } else tok.rewind();
+    
+    // can now create the channel. The Channel class maintains
+    // a static list of channels to which the ctor will add the
+    // new one.
+    new Channel(name,mono?1:2,gain,pan);
+    
 }
+
+void parseChanList(){
+    if(tok.getnext()!=T_OCURLY)
+        throw("expected '{'");
+    for(;;){
+        if(tok.getnext()==T_CCURLY)break;
+        else tok.rewind();
+        parseChan();
+    }
+}
+        
 
 void parse(const char *s){
     tok.reset(s);
     for(;;){
         switch(tok.getnext()){
         case T_CHANS:
-            parseChan();
+            parseChanList();
             break;
         }
     }

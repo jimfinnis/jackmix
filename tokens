@@ -17,8 +17,15 @@
 *c.     :   T_DOT
 *c(     :   T_OPREN
 *c)     :   T_CPREN
+*c{     :   T_OCURLY
+*c}     :   T_CCURLY
 
 *d->    :   T_ARROW
 
 chans : T_CHANS
-
+gain : T_GAIN
+mono : T_MONO
+stereo : T_STEREO
+pan : T_PAN
+send : T_SEND
+db : T_DB

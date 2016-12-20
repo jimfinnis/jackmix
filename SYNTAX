@@ -15,12 +15,19 @@ ctrllist = ctrl
 
 
 # channel is name, default value (control name) and optional send
+# default channel is stereo
 
-channel = ident gain [sendinfo];
-sendinfo = 'send' ident ('post'|'pre') gain;
-gain = value;
+channel = ident 'gain' value 'pan' value ['mono'|'stereo'] [sendinfo];
 
-value = number [ '(' ctrlname ')' ];
+# value here is the gain. Post or pre indicates post- or pre-fader,
+# default is post.
+
+sendinfo = 'send' ident ('post'|'pre') value;
+
+# if DB is present, the value is a log scale value in decibels
+# and is converted to a ratio on get.
+
+value = number ['db'] [ '(' ctrlname ')' ];
 
 ctrl = diamondctrl | TBD
 
