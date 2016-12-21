@@ -109,6 +109,7 @@ Value *parseValue(){
         v->setdb();
     else
         tok.rewind();
+    v->reset();
     
     if(tok.getnext()==T_OPREN){
         // there is a controller for this value!
@@ -257,8 +258,14 @@ int main(int argc,char *argv[]){
         printf("fatal error: %s\n",err);
         exit(1);
     }
+    
+    Channel::resetPeak();
     parsedAndReady=true;
-    while(1){sleep(1);}
+    while(1){
+        sleep(1);
+        printf("%f - %f\n",Channel::getPeakL(),Channel::getPeakR());
+        Channel::resetPeak();
+    }
     
     shutdown();
 }

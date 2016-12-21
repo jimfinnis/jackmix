@@ -44,6 +44,15 @@ class Channel {
         right = (float *)jack_port_get_buffer(rightport,nframes);
     }
         
+    // for peak metering
+    static volatile float peakl,peakr;
+    
+    
+    // if mono, only leftport is used
+    jack_port_t *leftport,*rightport;
+    
+    // these cache the port buffers, but only inside one call to process()
+    float *left,*right;
     
 public:
     Channel(std::string n,int ch,Value *g,Value *p){
@@ -61,12 +70,6 @@ public:
         chans.push_back(this);
     }
     
-    // if mono, only leftport is used
-    jack_port_t *leftport,*rightport;
-    
-    // these cache the port buffers, but only inside one call to process()
-    float *left,*right;
-    
     
     // mixes all channels into the output buffer
     static void mixChannels(float *leftout,float *rightout,int offset,int nframes);
@@ -78,6 +81,17 @@ public:
             (*it)->cachebufs(nframes);
         }
     }
+    static void resetPeak(){
+        peakl=peakr=0;
+    }
+    
+    static float getPeakL(){
+        return peakl;
+    }
+    static float getPeakR(){
+        return peakr;
+    }
+    
         
 };
     
