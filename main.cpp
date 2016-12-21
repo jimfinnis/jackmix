@@ -18,8 +18,6 @@
 #include "tokeniser.h"
 #include "tokens.h"
 
-static const float PI = 3.1415927f;
-
 jack_port_t *output[2];
 
 /// array of zeroes
@@ -36,67 +34,37 @@ jack_client_t *client;
  * Processing.
  */
 
-// mono panning using a sin/cos taper to avoid the 6db drop at the centre
-void panmono(float *__restrict left,
-             float *__restrict right,
-             float *__restrict in,
-             float pan,float amp,int n){
-    float ampl = cosf(pan*PI*0.5f);
-    float ampr = sinf(pan*PI*0.5f);
-    for(int i=0;i<n;i++){
-        *left++ = *in * ampl;
-        *right++ = *in++ * ampr;
-    }
-}
-
-// stereo panning (balance) using a linear taper
-void panstereo(float *__restrict leftout,
-               float *__restrict rightout,
-               float *__restrict leftin,
-               float *__restrict rightin,
-               float pan,float amp,int n){
-    if(pan<0.5f){
-        for(int i=0;i<n;i++){
-            *leftout++ = *leftin++;
-            *rightout++ = *rightin++ * pan*2.0f;
-        }
-    } else {
-        pan = 1.0f-pan;
-        for(int i=0;i<n;i++){
-            *leftout++ = *leftin++ * pan*2.0f;
-            *rightout++ = *rightin++;
-        }
-    }
-        
-}
-
-
-static const unsigned int BUFSIZE=1024;
-
-void subproc(float *left,float *right,int n){
-    static float tmp[BUFSIZE];
+// this is called repeatedly by process to do the mixing
+inline void subproc(float *left,float *right,int offset,int n){
+    // run through all the channels, converting to stereo and panning
+    // as required, mixing them into stereo if needed. Add the resulting
+    // stereo buffers into the output buffers.
     
+    Channel::mixChannels(left,right,offset,n);
 }
 
 /*
  * JACK callbacks
  */
 
-
+static volatile bool parsedAndReady=false;
 int process(jack_nframes_t nframes, void *arg){
+    if(!parsedAndReady)return 0;
     float *outleft = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output[0],
                                                               nframes);
     float *outright = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output[1],
                                                               nframes);
+    Channel::cacheAllChannelBuffers(nframes);
     
-    static float buf[BUFSIZE];
+    // we split the buffer into chunks we know are of a certain size
+    // to avoid having to play silly buggers with memory allocation
     unsigned int i;
     for(i=0;i<nframes-BUFSIZE;i+=BUFSIZE){
-        subproc(outleft+i,outright+i,BUFSIZE);
+        subproc(outleft+i,outright+i,i,BUFSIZE);
     }
-    subproc(outleft+i,outright+i,nframes-i);
+    subproc(outleft+i,outright+i,i,nframes-i);
     return 0;
 }
 void jack_shutdown(void *arg)
@@ -125,7 +93,7 @@ void shutdown(){
 Tokeniser tok;
 std::string getnextident(){
     if(tok.getnext()!=T_IDENT)
-        throw "syntax error";
+        throw "expected identifier";
     return std::string(tok.getstring());
 }
 
@@ -156,9 +124,10 @@ Value *parseValue(){
     
 
 void parseChan(){
-    if(tok.getnext()!=T_COLON)
-        throw "expected ':'";
     std::string name=getnextident();
+    
+    printf("Parsing channel %s\n",name.c_str());
+    
     
     if(tok.getnext()!=T_GAIN)
         throw "expected 'gain'";
@@ -190,9 +159,10 @@ void parseChanList(){
     if(tok.getnext()!=T_OCURLY)
         throw("expected '{'");
     for(;;){
-        if(tok.getnext()==T_CCURLY)break;
-        else tok.rewind();
         parseChan();
+        int t = tok.getnext();
+        if(t==T_CCURLY)break;
+        else if(t!=T_COMMA)throw("expected ',' or '{'");
     }
 }
         
@@ -204,6 +174,8 @@ void parse(const char *s){
         case T_CHANS:
             parseChanList();
             break;
+        case T_END:
+            return;
         }
     }
 }
@@ -249,24 +221,30 @@ const char *init(const char *file){
         return "cannot activate jack client";
     }
     
-    // line by line parsing
+    // parsing - reads entire file
     try {
         tok.init();
         tok.setname("<in>");
         tok.settokens(tokens);
         tok.setcommentlinesequence("#");
-        
+        tok.settrace(true);
         FILE *a = fopen(file,"r");
         if(a){
-            while(!feof(a)){
-                char buf[1024];
-                char *bb = fgets(buf,1024,a);
-                if(bb)parse(bb);
-            }
+            fseek(a,0L,SEEK_END);
+            int n = ftell(a);
+            fseek(a,0L,SEEK_SET);
+            char *fbuf = (char *)malloc(n+1);
+            fread(fbuf,sizeof(char),n,a);
+            fbuf[n]=0;
             fclose(a);
-        }
+            parse(fbuf);
+            free(fbuf);
+        } else 
+            throw "cannot open config file";
     } catch(const char *s){
-        return s;
+        static char buf[1024];
+        sprintf(buf,"Fatal error at line %d: %s\n",tok.getline(),s);
+        return buf;
     }
     
     
@@ -279,6 +257,8 @@ int main(int argc,char *argv[]){
         printf("fatal error: %s\n",err);
         exit(1);
     }
-    sleep(10);
+    parsedAndReady=true;
+    while(1){sleep(1);}
+    
     shutdown();
 }

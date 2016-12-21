@@ -12,7 +12,11 @@
 #include <string>
 #include "value.h"
 
+// largest chunk we can work on (size of temp buffers)
+#define BUFSIZE 1024
+
 // input channel structure
+
 
 class Channel {
     std::string name;
@@ -28,8 +32,18 @@ class Channel {
                                   client,
                                   pname.c_str(),
                                   JACK_DEFAULT_AUDIO_TYPE, 
-                                  JackPortIsOutput, 0);
+                                  JackPortIsInput, 0);
     }
+    
+    // mix this channel into the output
+    void mix(float *leftout,float *rightout,int offset,int nframes);
+    // store the jack buffer pointers, but do not store them between
+    // process() calls
+    void cachebufs(int nframes){
+        left = (float *)jack_port_get_buffer(leftport,nframes);
+        right = (float *)jack_port_get_buffer(rightport,nframes);
+    }
+        
     
 public:
     Channel(std::string n,int ch,Value *g,Value *p){
@@ -49,6 +63,22 @@ public:
     
     // if mono, only leftport is used
     jack_port_t *leftport,*rightport;
+    
+    // these cache the port buffers, but only inside one call to process()
+    float *left,*right;
+    
+    
+    // mixes all channels into the output buffer
+    static void mixChannels(float *leftout,float *rightout,int offset,int nframes);
+    
+    // call once per process() to cache port buffer pointers
+    static void cacheAllChannelBuffers(int nframes){
+        std::vector<Channel *>::iterator it;
+        for(it=chans.begin();it!=chans.end();it++){
+            (*it)->cachebufs(nframes);
+        }
+    }
+        
 };
     
     
