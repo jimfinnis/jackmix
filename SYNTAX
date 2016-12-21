@@ -29,10 +29,8 @@ sendinfo = 'send' ident ('post'|'pre') value;
 
 value = number ['db'] [ '(' ctrlname ')' ];
 
-ctrl = diamondctrl | TBD
-
-diamondctrl = ident ':' diamondname [inrangespec] ['log'] [outrangespec];
-
+ctrl = ident ':' sourcespec [inrangespec] ['db'] [outrangespec];
+sourcespec = string;
 inrangespec = 'in' number ': number;
 outrangespec = 'out' number ': number;
 

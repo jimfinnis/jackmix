@@ -156,11 +156,62 @@ void parseChan(){
     
 }
 
+void parseCtrl(){
+    std::string name=getnextident();
+    
+    if(tok.getnext()!=T_COLON)
+        throw "expected ':' after ctrl name";
+    
+    if(tok.getnext()!=T_STRING)
+        throw "expected string (ctrl source spec)";
+    
+    std::string spec = std::string(tok.getstring());
+    
+    // creating the ctrl will set the default ranges
+    
+    Ctrl *c = Ctrl::createOrFind(name);
+    c->setsource(spec);
+    
+    if(tok.getnext()==T_IN){
+        float inmin = tok.getnextfloat();
+        if(tok.iserror())throw "expected a float in input range";
+        if(tok.getnext()!=T_COLON)throw "expected a ':' in input range";
+        float inmax = tok.getnextfloat();
+        if(tok.iserror())throw "expected a float in input range";
+        c->setinrange(inmin,inmax);
+    }else tok.rewind();
+    
+    if(tok.getnext()==T_DB)
+        c->setdb();
+    else tok.rewind();
+    
+    if(tok.getnext()==T_OUT){
+        float outmin = tok.getnextfloat();
+        if(tok.iserror())throw "expected a float in output range";
+        if(tok.getnext()!=T_COLON)throw "expected a ':' in output range";
+        float outmax = tok.getnextfloat();
+        if(tok.iserror())throw "expected a float in output range";
+        c->setoutrange(outmin,outmax);
+    }else tok.rewind();
+    
+}
+
 void parseChanList(){
     if(tok.getnext()!=T_OCURLY)
         throw("expected '{'");
     for(;;){
         parseChan();
+        int t = tok.getnext();
+        if(t==T_CCURLY)break;
+        else if(t!=T_COMMA)throw("expected ',' or '{'");
+    }
+}
+
+void parseCtrlList(){
+    if(tok.getnext()!=T_OCURLY)
+        throw("expected '{'");
+    for(;;){
+        parseCtrl();
         int t = tok.getnext();
         if(t==T_CCURLY)break;
         else if(t!=T_COMMA)throw("expected ',' or '{'");
@@ -174,6 +225,9 @@ void parse(const char *s){
         switch(tok.getnext()){
         case T_CHANS:
             parseChanList();
+            break;
+        case T_CTRL:
+            parseCtrlList();
             break;
         case T_END:
             return;
@@ -247,8 +301,13 @@ const char *init(const char *file){
         sprintf(buf,"Fatal error at line %d: %s\n",tok.getline(),s);
         return buf;
     }
-    
-    
+    try {
+        Ctrl::checkAllCtrlsForValueDBAgreementAndSource();
+    } catch(const char *s){
+        static char buf[1024];
+        sprintf(buf,"Fatal error: %s\n",s);
+        return buf;
+    }
     
     return NULL;
 }

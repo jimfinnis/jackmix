@@ -48,18 +48,21 @@ class Ctrl {
     /// and there is a map of all the control channels
     static std::unordered_map<std::string,Ctrl *> map;
     
+    /// true if this ctrl has an external data source defined
+    bool hasSource;
 public:
     static Ctrl *createOrFind(std::string name);
     
     
     Ctrl(){
         db=false;
+        hasSource=false;
         inmin=0;inmax=1;
         outmin=0;outmax=1;
     }
         
     // fluent modifiers
-    Ctrl *setlog(){
+    Ctrl *setdb(){
         db = true;
         return this;
     }
@@ -69,6 +72,11 @@ public:
     }
     Ctrl *setoutrange(float mn,float mx){
         outmin=mn;outmax=mx;
+        return this;
+    }
+    Ctrl *setsource(std::string spec){
+        hasSource=true;
+        printf("setsource tbd!!!!!!!!!!!\n");
         return this;
     }
     
@@ -93,8 +101,9 @@ public:
     }
     
     /// make sure all the values in all db controls are db, and
-    /// all values in non-db controls are non-db.
-    static void checkAllCtrlsForValueDBAgreement();
+    /// all values in non-db controls are non-db. Also check they
+    /// all have an external control channel.
+    static void checkAllCtrlsForValueDBAgreementAndSource();
         
 };   
     

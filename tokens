@@ -29,3 +29,6 @@ stereo : T_STEREO
 pan : T_PAN
 send : T_SEND
 db : T_DB
+ctrl : T_CTRL
+in: T_IN
+out: T_OUT
