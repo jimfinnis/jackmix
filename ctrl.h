@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 #include "value.h"
+#include "ring.h"
 
 /// this is a control channel, used to manage a list of values.
 /// It has an input range, which converts whatever the incoming
@@ -50,6 +51,28 @@ class Ctrl {
     
     /// true if this ctrl has an external data source defined
     bool hasSource;
+    
+    /// this is a ring buffer - it is used to pass ctrl change data
+    /// from the reader thread for particular source types into
+    /// the process thread, where values can be changed.
+    RingBuffer<float> *ring;
+    
+
+    /// this code is called inside the Jack process thread:
+    /// it checks the ring buffer for any new setting, and passes
+    /// it onto the values.
+    
+    void ringPoll(){
+        float f;
+        if(ring->read(f)){
+            std::vector<Value *>::iterator it;
+            for(it=values.begin();it!=values.end();it++){
+                (*it)->setTarget(f);
+            }
+        }
+    }
+    
+
 public:
     static Ctrl *createOrFind(std::string name);
     
@@ -59,6 +82,11 @@ public:
         hasSource=false;
         inmin=0;inmax=1;
         outmin=0;outmax=1;
+        ring = new RingBuffer<float>(20);
+    }
+    
+    ~Ctrl(){
+        delete ring;
     }
         
     // fluent modifiers
@@ -88,16 +116,15 @@ public:
     }
     
     /// set a value; will convert the input then pass it down to the
-    /// individual values
+    /// individual values, VIA THE RING BUFFER. It should be called
+    /// from the source handler thread, and from one thread only
+    /// for each control. It will just fill the ring and then
+    /// do nothing if ringPoll() isn't regularly called.
     void setval(float v){
         v = (v-inmin)/(inmax-inmin);
         if(db)v=v*60.0f-60.0f;
         v = v*(outmax-outmin)+outmin;
-        
-        std::vector<Value *>::iterator it;
-        for(it=values.begin();it!=values.end();it++){
-            (*it)->setTarget(v);
-        }
+        ring->write(v);
     }
     
     /// make sure all the values in all db controls are db, and
