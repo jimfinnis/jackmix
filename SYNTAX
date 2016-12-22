@@ -29,7 +29,7 @@ sendinfo = 'send' ident ('post'|'pre') value;
 
 value = number ['db'] [ '(' ctrlname ')' ];
 
-ctrl = ident ':' sourcespec [inrangespec] ['db'] [outrangespec];
+ctrl = ident ':' sourcespec [noconvert] [inrangespec] [outrangespec] ;
 sourcespec = string;
 inrangespec = 'in' number ': number;
 outrangespec = 'out' number ': number;

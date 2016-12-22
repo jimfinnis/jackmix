@@ -1,3 +1,4 @@
+
 /**
  * @file value.h
  * @brief  Brief description of file.
@@ -53,18 +54,18 @@ public:
     
     /// set the value from a control - actually sets the target
     /// value of an LPF to avoid artifacts. The value itself is set
-    /// in update()
+    /// in update(). Performs db conversion.
     
     void setTarget(float v){
-        target=v;
+        if(db)
+            target=powf(10.0,v*0.1f);
+        else
+            target=v;
     }
     
-    /// get the value, performing db conversion if required
+    /// get the value
     float get(){
-        if(db)
-            return powf(10.0,value*0.1f);
-        else
-            return value;
+        return value;
     }
             
     
@@ -76,7 +77,7 @@ public:
     
     /// perform periodic update
     void update(){
-        value = value*0.9f + target*0.1f;
+        value = value*0.99f + target*0.01f;
     }
     
     /// update all values

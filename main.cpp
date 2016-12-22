@@ -11,12 +11,14 @@
 #include <unistd.h>
 #include <math.h>
 #include <string>
+#include <iostream>
 
 #include "channel.h"
 #include "ctrl.h"
 
 #include "tokeniser.h"
 #include "tokens.h"
+#include "diamond.h"
 
 jack_port_t *output[2];
 
@@ -49,6 +51,8 @@ inline void subproc(float *left,float *right,int offset,int n){
 
 static volatile bool parsedAndReady=false;
 int process(jack_nframes_t nframes, void *arg){
+    static unsigned int interval=0;
+    
     if(!parsedAndReady)return 0;
     float *outleft = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output[0],
@@ -56,6 +60,16 @@ int process(jack_nframes_t nframes, void *arg){
     float *outright = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output[1],
                                                               nframes);
+    
+    // every now and then, read data out of the ring buffers and update
+    // the values (which use LPFs).
+    if(!(interval++%16)){
+        Ctrl::pollAllCtrlRings();
+        Value::updateAll();
+    }
+    
+    // just stores the pointers to the buffers for quick access in processing;
+    // they don't survive across process() calls.
     Channel::cacheAllChannelBuffers(nframes);
     
     // we split the buffer into chunks we know are of a certain size
@@ -122,7 +136,7 @@ Value *parseValue(){
         tok.rewind();
     return v;
 }
-    
+
 
 void parseChan(){
     std::string name=getnextident();
@@ -172,27 +186,28 @@ void parseCtrl(){
     Ctrl *c = Ctrl::createOrFind(name);
     c->setsource(spec);
     
-    if(tok.getnext()==T_IN){
-        float inmin = tok.getnextfloat();
-        if(tok.iserror())throw "expected a float in input range";
-        if(tok.getnext()!=T_COLON)throw "expected a ':' in input range";
-        float inmax = tok.getnextfloat();
-        if(tok.iserror())throw "expected a float in input range";
-        c->setinrange(inmin,inmax);
-    }else tok.rewind();
-    
-    if(tok.getnext()==T_DB)
-        c->setdb();
-    else tok.rewind();
-    
-    if(tok.getnext()==T_OUT){
-        float outmin = tok.getnextfloat();
-        if(tok.iserror())throw "expected a float in output range";
-        if(tok.getnext()!=T_COLON)throw "expected a ':' in output range";
-        float outmax = tok.getnextfloat();
-        if(tok.iserror())throw "expected a float in output range";
-        c->setoutrange(outmin,outmax);
-    }else tok.rewind();
+    if(tok.getnext()==T_NOCONVERT){
+        c->noconvert();
+    } else {
+        tok.rewind();
+        if(tok.getnext()==T_IN){
+            float inmin = tok.getnextfloat();
+            if(tok.iserror())throw "expected a float in input range";
+            if(tok.getnext()!=T_COLON)throw "expected a ':' in input range";
+            float inmax = tok.getnextfloat();
+            if(tok.iserror())throw "expected a float in input range";
+            c->setinrange(inmin,inmax);
+        }else tok.rewind();
+        
+        if(tok.getnext()==T_OUT){
+            float outmin = tok.getnextfloat();
+            if(tok.iserror())throw "expected a float in output range";
+            if(tok.getnext()!=T_COLON)throw "expected a ':' in output range";
+            float outmax = tok.getnextfloat();
+            if(tok.iserror())throw "expected a float in output range";
+            c->setoutrange(outmin,outmax);
+        }else tok.rewind();
+    }
     
 }
 
@@ -217,7 +232,7 @@ void parseCtrlList(){
         else if(t!=T_COMMA)throw("expected ',' or '{'");
     }
 }
-        
+
 
 void parse(const char *s){
     tok.reset(s);
@@ -247,6 +262,7 @@ const char *init(const char *file){
         floatOnes[i]=1.0f;
     }
     
+    initDiamond();
     
     // start JACK
     
@@ -255,7 +271,7 @@ const char *init(const char *file){
     }
     // get the real sampling rate
     samprate = (float)jack_get_sample_rate(client);
-
+    
     // set callbacks
     jack_set_process_callback(client, process, 0);
     jack_set_sample_rate_callback(client, srate, 0);
@@ -302,7 +318,7 @@ const char *init(const char *file){
         return buf;
     }
     try {
-        Ctrl::checkAllCtrlsForValueDBAgreementAndSource();
+        Ctrl::checkAllCtrlsForSource();
     } catch(const char *s){
         static char buf[1024];
         sprintf(buf,"Fatal error: %s\n",s);
@@ -313,6 +329,7 @@ const char *init(const char *file){
 }
 
 int main(int argc,char *argv[]){
+    
     if(const char *err = init("config")){
         printf("fatal error: %s\n",err);
         exit(1);
@@ -321,7 +338,8 @@ int main(int argc,char *argv[]){
     Channel::resetPeak();
     parsedAndReady=true;
     while(1){
-        sleep(1);
+        usleep(100000);
+        pollDiamond();
         printf("%f - %f\n",Channel::getPeakL(),Channel::getPeakR());
         Channel::resetPeak();
     }
