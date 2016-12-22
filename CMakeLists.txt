@@ -12,7 +12,7 @@ include_directories(${JACK_INCLUDE_DIR} ${CMAKE_BINARY_DIR} .)
 add_definitions(${JACK_DEFINITIONS} -Wall)
 
 set(SOURCES main.cpp tokeniser.cpp tokens.cpp ctrl.cpp value.cpp
-    channel.cpp diamond.cpp)
+    channel.cpp diamond.cpp fx.cpp plugins.cpp)
 
 add_custom_command(
     OUTPUT tokens.cpp tokens.h
@@ -22,5 +22,5 @@ add_custom_command(
 add_executable(jackmix ${SOURCES})
 
 target_link_libraries(jackmix ${JACK_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT} -lm -ldiamondapparatus -lpthread)
+    ${CMAKE_THREAD_LIBS_INIT} -lm -ldiamondapparatus -lpthread dl)
 target_compile_options(jackmix PUBLIC "-pthread")

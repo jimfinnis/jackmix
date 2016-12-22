@@ -1,0 +1,17 @@
+Need to specify input and output ports in effects. See config for 
+an example.
+Need to connect those ports before running, and make sure checkPortsConnected doesn't get in
+a tizzy about them
+
+
+Crash on exit due to ladspa freeing stuff twice. I think I need to dlclose
+all the libraries one by one on exit.
+
+Need to check the value being given to an effect param is within range.
+
+Be nice to have a way of mapping a known range (0-1) to the actual
+range of an effect param, e.g. 
+    gverb { "Roomsize (m)" default(ctrl) mapped
+would specify that ctrl produced 0-1, and the effect would map it
+itself. Chuffing hard because the value has nothing to do with the effect;
+the source could write the value via the ctrl and the effect won't know.

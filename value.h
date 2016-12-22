@@ -78,6 +78,12 @@ public:
     float get(){
         return value;
     }
+    
+    /// get a pointer to the value - ONLY use this when you
+    /// connect LADSPA control ports
+    float *getAddr(){
+        return &value;
+    }
             
     
     /// reset value and target to default

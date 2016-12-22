@@ -10,15 +10,21 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <stdint.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 
 #include "channel.h"
 #include "ctrl.h"
 
+#include "exception.h"
 #include "tokeniser.h"
 #include "tokens.h"
+#include "plugins.h"
 #include "diamond.h"
+
+using namespace std;
 
 jack_port_t *output[2];
 
@@ -28,7 +34,7 @@ float floatZeroes[MAXFRAMESIZE];
 float floatOnes[MAXFRAMESIZE];
 
 /// sample rate 
-float samprate = 0;
+uint32_t samprate = 0;
 
 jack_client_t *client;
 
@@ -102,16 +108,25 @@ void shutdown(){
  */
 
 Tokeniser tok;
-std::string getnextident(){
-    if(tok.getnext()!=T_IDENT)
-        throw "expected identifier";
-    return std::string(tok.getstring());
+void expected(string s){
+    stringstream ss;
+    ss << "Expected " << s << ", got '" << tok.getstring() << "'";
+    throw(ss.str());
 }
 
-// values are <number>['('<ctrl>')']
-Value *parseValue(){
+string getnextident(){
+    if(tok.getnext()!=T_IDENT)
+        expected("identifier");
+    return string(tok.getstring());
+}
+
+// values are <number>['('<ctrl>')'], where <number> might be "default"
+// if deflt_ok is true. If "default" is used, the value to set is passed
+// in.
+Value *parseValue(bool deflt_ok=false,float defval=0)
+{
     Value *v = new Value();
-    
+
     float smooth = 0.5;
     for(;;){
         switch(tok.getnext()){
@@ -120,34 +135,44 @@ Value *parseValue(){
             break;
         case T_SMOOTH:
             smooth = tok.getnextfloat();
-            if(tok.iserror())throw "expected a number";
+            if(tok.iserror())expected("number");
             break;
+        case T_DEFAULT:
         case T_INT:
         case T_FLOAT:
             goto optsdone;
         default:
-            throw "expected a number or value option";
+            expected("number or value option");
         }
     }
     
 optsdone:
-    float n = tok.getfloat();
+    // use the default value passed in if we have one and it's allowed
+    float n;
+    if(tok.getcurrent() == T_DEFAULT){
+        if(!deflt_ok)
+            throw _("default not permitted here");
+    } else if(tok.getcurrent() == T_FLOAT || tok.getcurrent()==T_INT)
+        n = tok.getfloat();
+    else
+        expected("number or 'default'");
+    
     v->setdef(n);
     v->reset();
     
     if(tok.getnext()==T_OPREN){
         // there is a controller for this value!
-        std::string name = getnextident();
+        string name = getnextident();
         Ctrl *c = Ctrl::createOrFind(name);
         c->addval(v);
         
         if(tok.getnext()==T_SMOOTH){
             n = tok.getnextfloat();
-            if(tok.iserror())throw "expected a number";
+            if(tok.iserror())expected("number");
         } else tok.rewind();
         
         if(tok.getnext()!=T_CPREN)
-            throw "expected a ')'";
+            expected("')'");
     } else
         tok.rewind();
     v->setsmooth(smooth);
@@ -156,17 +181,17 @@ optsdone:
 
 
 void parseChan(){
-    std::string name=getnextident();
+    string name=getnextident();
     
     printf("Parsing channel %s\n",name.c_str());
     
     
     if(tok.getnext()!=T_GAIN)
-        throw "expected 'gain'";
+        expected("'gain'");
     Value *gain = parseValue();
     
     if(tok.getnext()!=T_PAN)
-        throw "expected 'pan'";
+        expected("'pan'");
     Value *pan = parseValue();
     
     bool mono=false;
@@ -177,7 +202,7 @@ void parseChan(){
     }
     
     if(tok.getnext()==T_SEND){
-        throw "FX not implemented yet";
+        throw _("FX not implemented yet");
     } else tok.rewind();
     
     // can now create the channel. The Channel class maintains
@@ -188,15 +213,15 @@ void parseChan(){
 }
 
 void parseCtrl(){
-    std::string name=getnextident();
+    string name=getnextident();
     
     if(tok.getnext()!=T_COLON)
-        throw "expected ':' after ctrl name";
+        expected("':' after ctrl name");
     
     if(tok.getnext()!=T_STRING)
-        throw "expected string (ctrl source spec)";
+        expected("string (ctrl source spec)");
     
-    std::string spec = std::string(tok.getstring());
+    string spec = string(tok.getstring());
     
     // creating the ctrl will set the default ranges
     
@@ -209,19 +234,19 @@ void parseCtrl(){
         tok.rewind();
         if(tok.getnext()==T_IN){
             float inmin = tok.getnextfloat();
-            if(tok.iserror())throw "expected a float in input range";
-            if(tok.getnext()!=T_COLON)throw "expected a ':' in input range";
+            if(tok.iserror())expected("float (in input range)");
+            if(tok.getnext()!=T_COLON)expected("':' in input range");
             float inmax = tok.getnextfloat();
-            if(tok.iserror())throw "expected a float in input range";
+            if(tok.iserror())expected("float (in input range)");
             c->setinrange(inmin,inmax);
         }else tok.rewind();
         
         if(tok.getnext()==T_OUT){
             float outmin = tok.getnextfloat();
-            if(tok.iserror())throw "expected a float in output range";
-            if(tok.getnext()!=T_COLON)throw "expected a ':' in output range";
+            if(tok.iserror())expected("float (in output range)");
+            if(tok.getnext()!=T_COLON)expected("':' in output range");
             float outmax = tok.getnextfloat();
-            if(tok.iserror())throw "expected a float in output range";
+            if(tok.iserror())expected("float (in output range)");
             c->setoutrange(outmin,outmax);
         }else tok.rewind();
     }
@@ -230,28 +255,29 @@ void parseCtrl(){
 
 void parseChanList(){
     if(tok.getnext()!=T_OCURLY)
-        throw("expected '{'");
+        expected("'{'");
     for(;;){
         parseChan();
         int t = tok.getnext();
         if(t==T_CCURLY)break;
-        else if(t!=T_COMMA)throw("expected ',' or '{'");
+        else if(t!=T_COMMA)expected("',' or '{'");
     }
 }
 
 void parseCtrlList(){
     if(tok.getnext()!=T_OCURLY)
-        throw("expected '{'");
+        expected("'{'");
     for(;;){
         parseCtrl();
         int t = tok.getnext();
         if(t==T_CCURLY)break;
-        else if(t!=T_COMMA)throw("expected ',' or '{'");
+        else if(t!=T_COMMA)expected("',' or '{'");
     }
 }
 
 
 void parse(const char *s){
+    extern void parseFXChainList();
     tok.reset(s);
     for(;;){
         switch(tok.getnext()){
@@ -261,8 +287,13 @@ void parse(const char *s){
         case T_CTRL:
             parseCtrlList();
             break;
+        case T_FX:
+            parseFXChainList();
+            break;
         case T_END:
             return;
+        default:
+            throw _("unexpected top level token");
         }
     }
 }
@@ -273,7 +304,7 @@ void parse(const char *s){
  *
  */
 
-const char *init(const char *file){
+void init(const char *file){
     for(int i=0;i<MAXFRAMESIZE;i++){
         floatZeroes[i]=0.0f;
         floatOnes[i]=1.0f;
@@ -284,10 +315,15 @@ const char *init(const char *file){
     // start JACK
     
     if (!(client = jack_client_open("jackmix", JackNullOption, NULL))){
-        return "jack not running?";
+        throw _("jack not running?");
     }
     // get the real sampling rate
-    samprate = (float)jack_get_sample_rate(client);
+    samprate = jack_get_sample_rate(client);
+    
+    if(samprate<10000)
+        throw _("weird sample rate: %d",samprate);
+    
+    PluginMgr::loadFilesIn("/usr/lib/ladspa");
     
     // set callbacks
     jack_set_process_callback(client, process, 0);
@@ -306,7 +342,7 @@ const char *init(const char *file){
                                    JackPortIsOutput, 0);
     
     if (jack_activate(client)) {
-        return "cannot activate jack client";
+        throw _("cannot activate jack client");
     }
     
     // parsing - reads entire file
@@ -315,7 +351,7 @@ const char *init(const char *file){
         tok.setname("<in>");
         tok.settokens(tokens);
         tok.setcommentlinesequence("#");
-        tok.settrace(true);
+//        tok.settrace(true);
         FILE *a = fopen(file,"r");
         if(a){
             fseek(a,0L,SEEK_END);
@@ -328,27 +364,31 @@ const char *init(const char *file){
             parse(fbuf);
             free(fbuf);
         } else 
-            throw "cannot open config file";
-    } catch(const char *s){
-        static char buf[1024];
-        sprintf(buf,"Fatal error at line %d: %s\n",tok.getline(),s);
-        return buf;
+            throw _("cannot open config file");
+    } catch(string s){
+        stringstream ss;
+        ss << "at line " << tok.getline() << ": " << s;
+        throw ss.str();
     }
+    
+    
     try {
         Ctrl::checkAllCtrlsForSource();
     } catch(const char *s){
-        static char buf[1024];
-        sprintf(buf,"Fatal error: %s\n",s);
-        return buf;
+        printf("WARN: redundant char* error here\n");
+        throw string(s);
     }
-    
-    return NULL;
 }
 
 int main(int argc,char *argv[]){
     
-    if(const char *err = init("config")){
-        printf("fatal error: %s\n",err);
+    try {
+        init("config");
+    } catch (const char *s){
+        printf("Redundant error : %s\n",s);
+        exit(1);
+    } catch (string s){
+        cout << "Fatal error: " << s << endl;
         exit(1);
     }
     

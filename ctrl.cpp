@@ -35,7 +35,7 @@ void Ctrl::checkAllCtrlsForSource(){
         for(iv=c->values.begin();iv!=c->values.end();iv++){
             Value *v = *iv;
             if(v->db != c->db){
-                throw "DB should match values and channels";
+                throw _("DB should match values and channels");
             }
            }
         */
