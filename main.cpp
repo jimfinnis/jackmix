@@ -51,22 +51,19 @@ inline void subproc(float *left,float *right,int offset,int n){
 
 static volatile bool parsedAndReady=false;
 int process(jack_nframes_t nframes, void *arg){
-    static unsigned int interval=0;
-    
     if(!parsedAndReady)return 0;
+    
+    // every now and then, read data out of the ring buffers and update
+    // the values (which use LPFs).
+    Ctrl::pollAllCtrlRings();
+    Value::updateAll();
+    
     float *outleft = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output[0],
                                                               nframes);
     float *outright = 
           (jack_default_audio_sample_t *)jack_port_get_buffer(output[1],
                                                               nframes);
-    
-    // every now and then, read data out of the ring buffers and update
-    // the values (which use LPFs).
-    if(!(interval++%16)){
-        Ctrl::pollAllCtrlRings();
-        Value::updateAll();
-    }
     
     // just stores the pointers to the buffers for quick access in processing;
     // they don't survive across process() calls.
@@ -113,16 +110,18 @@ std::string getnextident(){
 
 // values are <number>['('<ctrl>')']
 Value *parseValue(){
-    float n = tok.getnextfloat();
-    if(tok.iserror())throw "expected a number";
-    
     Value *v = new Value();
-    v->setdef(n);
     
     if(tok.getnext()==T_DB)
         v->setdb();
     else
         tok.rewind();
+    
+    float n = tok.getnextfloat();
+    if(tok.iserror())throw "expected a number";
+    
+    v->setdef(n);
+    
     v->reset();
     
     if(tok.getnext()==T_OPREN){

@@ -32,11 +32,10 @@ void Channel::mixChannels(float *__restrict leftout,
     }
 }
 
+
 void Channel::mix(float *__restrict leftout,
                   float *__restrict rightout,int offset,int nframes){
     static float tmpl[BUFSIZE],tmpr[BUFSIZE];
-    
-//    printf("PAN: %f GAIN: %f\n",pan->get(),gain->get());
     
     // mix into the temp buffers
     if(mono){

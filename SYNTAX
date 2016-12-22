@@ -25,9 +25,9 @@ channel = ident 'gain' value 'pan' value ['mono'|'stereo'] [sendinfo];
 sendinfo = 'send' ident ('post'|'pre') value;
 
 # if DB is present, the value is a log scale value in decibels
-# and is converted to a ratio on get.
+# and is converted to a ratio on get. It should be -60:0 
 
-value = number ['db'] [ '(' ctrlname ')' ];
+value = ['db'] number [ '(' ctrlname ')' ];
 
 ctrl = ident ':' sourcespec [noconvert] [inrangespec] [outrangespec] ;
 sourcespec = string;

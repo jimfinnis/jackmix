@@ -77,7 +77,7 @@ public:
     
     /// perform periodic update
     void update(){
-        value = value*0.99f + target*0.01f;
+        value = value*0.9f + target*0.1f;
     }
     
     /// update all values

@@ -32,14 +32,14 @@ inline void panstereo(float *__restrict leftout,
     if(pan<0.5f){
         pan *= 2.0f;
         for(int i=0;i<n;i++){
-            *leftout++ = *leftin++;
-            *rightout++ = *rightin++ * pan;
+            *leftout++ = *leftin++ * amp;
+            *rightout++ = *rightin++ * pan * amp;
         }
     } else {
         pan = (1.0f-pan)*2.0f;
         for(int i=0;i<n;i++){
-            *leftout++ = *leftin++ * pan;
-            *rightout++ = *rightin++;
+            *leftout++ = *leftin++ * pan * amp;
+            *rightout++ = *rightin++ * amp;
         }
     }
         
