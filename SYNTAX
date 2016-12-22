@@ -24,10 +24,15 @@ channel = ident 'gain' value 'pan' value ['mono'|'stereo'] [sendinfo];
 
 sendinfo = 'send' ident ('post'|'pre') value;
 
-# if DB is present, the value is a log scale value in decibels
-# and is converted to a ratio on get. It should be -60:0 
 
-value = ['db'] number [ '(' ctrlname ')' ];
+# if DB is present, the value is a log scale value in decibels
+# and is converted to a ratio on get. It should be -60:0.
+# If smooth is present, the default smoothing factor is changed.
+# The default is 0.5 - the closer to 1, the slower the value changes
+# are tracked. 0 is no smoothing, 0.99 takes a few seconds.
+
+value = [{valopt}] number [ '(' ctrlname ')' ];
+valopt = 'db' | ('smooth' float)
 
 ctrl = ident ':' sourcespec [noconvert] [inrangespec] [outrangespec] ;
 sourcespec = string;

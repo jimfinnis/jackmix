@@ -24,6 +24,11 @@ class Value {
     float value;
     /// the target value, input to the LPF
     float target;
+    /// the smoothing value for updates - the closer to 1, the more slowly
+    /// the value tracks the target. 0.5 (the default) is really quick,
+    /// 0.9 gives a nice smoothness. 0.99 is very slow, useful for crossfades.
+    /// value(t) = value(t-1)*smooth + target*(1-smooth)
+    float smooth;
     
     /// if true, value is expected to be -60 - 0 and is converted
     /// to a ratio 0-1 on get. Any ctrl value should also be log
@@ -37,6 +42,7 @@ class Value {
 public:
     Value(){
         deflt=0;
+        smooth=0.5;
         db=false;
         values.push_back(this);
     }
@@ -49,6 +55,11 @@ public:
     /// set DB (decibel conversion will be done on get)
     Value *setdb(){
         db=true;
+        return this;
+    }
+    /// set smoothing factor (see notes for smooth, above)
+    Value *setsmooth(float s){
+        smooth=s;
         return this;
     }
     
@@ -77,7 +88,7 @@ public:
     
     /// perform periodic update
     void update(){
-        value = value*0.9f + target*0.1f;
+        value = value*smooth + target*(1.0f-smooth);
     }
     
     /// update all values

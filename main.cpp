@@ -112,16 +112,27 @@ std::string getnextident(){
 Value *parseValue(){
     Value *v = new Value();
     
-    if(tok.getnext()==T_DB)
-        v->setdb();
-    else
-        tok.rewind();
+    float smooth = 0.5;
+    for(;;){
+        switch(tok.getnext()){
+        case T_DB:
+            v->setdb();
+            break;
+        case T_SMOOTH:
+            smooth = tok.getnextfloat();
+            if(tok.iserror())throw "expected a number";
+            break;
+        case T_INT:
+        case T_FLOAT:
+            goto optsdone;
+        default:
+            throw "expected a number or value option";
+        }
+    }
     
-    float n = tok.getnextfloat();
-    if(tok.iserror())throw "expected a number";
-    
+optsdone:
+    float n = tok.getfloat();
     v->setdef(n);
-    
     v->reset();
     
     if(tok.getnext()==T_OPREN){
@@ -129,10 +140,17 @@ Value *parseValue(){
         std::string name = getnextident();
         Ctrl *c = Ctrl::createOrFind(name);
         c->addval(v);
+        
+        if(tok.getnext()==T_SMOOTH){
+            n = tok.getnextfloat();
+            if(tok.iserror())throw "expected a number";
+        } else tok.rewind();
+        
         if(tok.getnext()!=T_CPREN)
             throw "expected a ')'";
     } else
         tok.rewind();
+    v->setsmooth(smooth);
     return v;
 }
 
