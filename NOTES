@@ -24,3 +24,16 @@ Todo:
 * effects chains
 
 
+Data flow for controls
+    In source and main threads:
+        Data arrives at source, which is polling.
+        Source works out which controller(s) (Ctrls) need updating with it.
+        Data arrives at Ctrl, which performs range conversions in->0/1->out,
+            and adds new data to its ring buffer
+    In process thread:
+        Process calls poll in all ctrls
+        if data in ring buffer, ctrl pulls data and sets target in all
+            the values it controls
+        Values update periodically to bring them closer to target
+        Channels/Effects get() values to work with.
+    
