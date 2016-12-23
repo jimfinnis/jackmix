@@ -16,7 +16,8 @@ using namespace std;
 
 // one per actual running plugin (i.e. instantiated and activated)
 class PluginInstance {
-    /// throw if a port is not connected, called by activate()
+    /// throw if a port is not connected, called by activate().
+    /// Will only check control ports!
     void checkPortsConnected();
 public:
     struct PluginData *p;
@@ -45,9 +46,17 @@ struct PluginData {
     const LADSPA_Descriptor *desc;
     unordered_map<string,int> shortPortNames;
     
+    /// add a short name for a port's long name
+    void addShortPortName(string shortname,string longname);
+    
     // these are the values used as defaults for control ports
     // for this plugin.
     unordered_map<unsigned int,float> defaultPortValues;
+    
+    // these are the indices of the input and output channels,
+    // not in a vector for some speed.
+    int numins,numouts;
+    int ins[2],outs[2];
     
     /// try to find the index of a plugin's port by long or short name
     int getPortIdx(string name);
@@ -71,8 +80,6 @@ namespace PluginMgr {
 void loadFilesIn(const char *dir);
 /// find a plugin, throwing if not found
 PluginData *getPlugin(std::string label);
-/// add a short name for a port's long name in a plutin
-void addShortPortName(PluginData *p,string longname,string shortname);    
 /// delete all instances - AFTER stopping the process thread!
 void deleteInstances();
 }

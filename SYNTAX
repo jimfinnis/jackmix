@@ -17,7 +17,10 @@ ctrllist = ctrl
 # channel is name, default value (control name) and optional send
 # default channel is stereo
 
-channel = ident 'gain' value 'pan' value ['mono'|'stereo'] [sendinfo];
+channel = ident ': ' 
+    'gain' value
+    'pan' value 
+    ['mono'|'stereo'] [sendinfo];
 
 # value here is the gain. Post or pre indicates post- or pre-fader,
 # default is post.

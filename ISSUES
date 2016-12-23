@@ -1,7 +1,10 @@
 Need to specify input and output ports in effects. See config for 
-an example.
+an example. 
+We now do that - we store the indices of the inputs and outputs,
+and count them too,
+
 Need to connect those ports before running, and make sure checkPortsConnected doesn't get in
-a tizzy about them
+a tizzy about them (it won't, because it only check control ports)
 
 
 Crash on exit due to ladspa freeing stuff twice. I think I need to dlclose

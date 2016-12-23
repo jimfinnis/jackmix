@@ -13,7 +13,6 @@
 #include <stdint.h>
 #include <string>
 #include <iostream>
-#include <sstream>
 
 #include "channel.h"
 #include "ctrl.h"
@@ -22,6 +21,7 @@
 #include "tokeniser.h"
 #include "tokens.h"
 #include "plugins.h"
+#include "parser.h"
 #include "diamond.h"
 
 using namespace std;
@@ -108,17 +108,6 @@ void shutdown(){
  */
 
 Tokeniser tok;
-void expected(string s){
-    stringstream ss;
-    ss << "Expected " << s << ", got '" << tok.getstring() << "'";
-    throw(ss.str());
-}
-
-string getnextident(){
-    if(tok.getnext()!=T_IDENT)
-        expected("identifier");
-    return string(tok.getstring());
-}
 
 // values are <number>['('<ctrl>')'], where <number> might be "default"
 // if deflt_ok is true. If "default" is used, the value to set is passed
@@ -182,6 +171,9 @@ optsdone:
 
 void parseChan(){
     string name=getnextident();
+    
+    if(tok.getnext()!=T_COLON)
+        expected(":");
     
     printf("Parsing channel %s\n",name.c_str());
     
@@ -253,47 +245,61 @@ void parseCtrl(){
     
 }
 
-void parseChanList(){
-    if(tok.getnext()!=T_OCURLY)
-        expected("'{'");
-    for(;;){
-        parseChan();
-        int t = tok.getnext();
-        if(t==T_CCURLY)break;
-        else if(t!=T_COMMA)expected("',' or '{'");
-    }
+// parse plugin data: input and output
+void parsePlugin(){
+    string name=getnextident();
+    PluginData *p = PluginMgr::getPlugin(name);
+    if(tok.getnext()!=T_OCURLY)expected("'{'");
+    if(tok.getnext()!=T_IN)expected("'in'");
+    
+    p->numins=0;
+    p->ins[p->numins++] = p->getPortIdx(getnextidentorstring());
+    if(tok.getnext()==T_COMMA){
+        p->ins[p->numins++] = p->getPortIdx(getnextidentorstring());
+    } else tok.rewind();
+    
+    if(tok.getnext()!=T_OUT)expected("'out'");
+    
+    p->numouts=0;
+    p->outs[p->numouts++] = p->getPortIdx(getnextidentorstring());
+    if(tok.getnext()==T_COMMA){
+        p->outs[p->numouts++] = p->getPortIdx(getnextidentorstring());
+    } else tok.rewind();
+    
+    if(tok.getnext()==T_NAMES){
+        parseList([=]{
+                  string sn = getnextident();
+                  string ln = getnextidentorstring();
+                  p->addShortPortName(sn,ln);
+              });
+    } else tok.rewind();
+    
+    if(tok.getnext()!=T_CCURLY)expected("'}'");
+    
 }
-
-void parseCtrlList(){
-    if(tok.getnext()!=T_OCURLY)
-        expected("'{'");
-    for(;;){
-        parseCtrl();
-        int t = tok.getnext();
-        if(t==T_CCURLY)break;
-        else if(t!=T_COMMA)expected("',' or '{'");
-    }
-}
-
-
+    
+    
 void parse(const char *s){
-    extern void parseFXChainList();
+    extern void parseChain();
     tok.reset(s);
     for(;;){
         switch(tok.getnext()){
         case T_CHANS:
-            parseChanList();
+            parseList(parseChan);
             break;
         case T_CTRL:
-            parseCtrlList();
+            parseList(parseCtrl);
             break;
         case T_FX:
-            parseFXChainList();
+            parseList(parseChain);
+            break;
+        case T_PLUGINS:
+            parseList(parsePlugin);
             break;
         case T_END:
             return;
         default:
-            throw _("unexpected top level token");
+            expected("chans, ctrls, fx, plugins");
         }
     }
 }

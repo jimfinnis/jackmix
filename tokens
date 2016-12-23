@@ -36,3 +36,5 @@ noconvert: T_NOCONVERT
 smooth: T_SMOOTH
 default: T_DEFAULT
 fx: T_FX
+plugins: T_PLUGINS
+names: T_NAMES

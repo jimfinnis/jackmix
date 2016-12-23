@@ -99,6 +99,18 @@ bool PluginData::getDefault(string pname,float *f){
 }
         
 
+void PluginData::addShortPortName(string shortname,string longname){
+    for(unsigned int i=0;i<desc->PortCount;i++){
+        if(!strcmp(desc->PortNames[i],longname.c_str())){
+            shortPortNames[shortname]=i;
+            return;
+        }
+    }
+    throw _("cannot find port '%s' in plugin '%s'",
+            longname.c_str(),label.c_str());
+}
+
+
 
 
 static std::vector<PluginInstance *> instances;
@@ -143,7 +155,7 @@ void PluginInstance::connect(string name,float *v){
 
 void PluginInstance::checkPortsConnected(){
     for(unsigned int i=0;i<p->desc->PortCount;i++){
-        if(!portsConnected[i])
+        if(!portsConnected[i] && LADSPA_IS_PORT_CONTROL(p->desc->PortDescriptors[i]))
             throw _("port %d (%s) in plugin %s is not connected",
                     i,p->desc->PortNames[i],p->label.c_str());
     }
@@ -208,17 +220,5 @@ PluginData *PluginMgr::getPlugin(std::string label){
     if(plugins.find(label)==plugins.end())
         throw _("cannot find plugin '%s'",label.c_str());
     return plugins[label];
-}
-
-
-void PluginMgr::addShortPortName(PluginData *p,string longname,string shortname){
-    for(unsigned int i=0;i<p->desc->PortCount;i++){
-        if(!strcmp(p->desc->PortNames[i],longname.c_str())){
-            p->shortPortNames[shortname]=i;
-            return;
-        }
-    }
-    throw _("cannot find port '%s' in plugin '%s'",
-            longname.c_str(),p->label.c_str());
 }
 

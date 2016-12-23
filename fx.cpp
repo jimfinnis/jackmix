@@ -14,12 +14,10 @@
 #include "exception.h"
 #include "plugins.h"
 #include "value.h"
+#include "parser.h"
 
 using namespace std;
 
-extern Tokeniser tok;
-extern string getnextident();
-extern void expected(string);
 Value *parseValue(bool deflt_ok=false,float defval=0);
 
 
@@ -48,10 +46,7 @@ static unordered_map<string,vector<FX> > chains;
 
 
 void parseEffectAndAdd(vector<FX>& chain){
-    int t = tok.getnext();
-    if(t!=T_STRING && t!=T_IDENT)
-        expected("LADSPA effect name");
-    string name = tok.getstring();
+    string name = getnextidentorstring();
     cout << "Parsing effect " << name << endl;
     
     // get the plugin data here
@@ -115,14 +110,3 @@ void parseChain(){
     }
 }
     
-
-void parseFXChainList(){
-    if(tok.getnext()!=T_OCURLY)
-        expected("'{'");
-    for(;;){
-        parseChain();
-        int t = tok.getnext();
-        if(t==T_CCURLY)break;
-        else if(t!=T_COMMA)expected("',' or '{'");
-    }
-}
