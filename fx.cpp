@@ -21,21 +21,16 @@ using namespace std;
 Value *parseValue(bool deflt_ok=false,float defval=0);
 
 
-
-/// bind a LADSPA parameter in a given instance of a plugin to
-/// a Value.
-//bindParameter(const LADSPA_Descriptor *desc, LADSPA_Handle instance,
-//              string pname,Value *v){
-//}
-
-
-
 /// an effect, which contains the necessary data for LADSPA to run it,
 /// having linked to Values for control.
 
 struct FX {
     PluginData *p;
 };
+
+
+
+
 
 /// The effects chains are stored as an unordered map of string to chain.
 /// Each chain is a vector of FX structures. Each effect has a link to
