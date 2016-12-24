@@ -27,6 +27,9 @@ public:
     // which ports are set correctly - we check before running
     vector<bool> portsConnected;
     
+    // maps output ports to their own buffer. Created in ctor.
+    unordered_map<int,float*> opbufs;
+    
     // will instantiate, set default controls etc.
     PluginInstance(struct PluginData *plugin);
     // will deactivate if required/cleanup
@@ -52,11 +55,6 @@ struct PluginData {
     // these are the values used as defaults for control ports
     // for this plugin.
     unordered_map<unsigned int,float> defaultPortValues;
-    
-    // these are the indices of the input and output channels,
-    // not in a vector for some speed.
-    int numins,numouts;
-    int ins[2],outs[2];
     
     /// try to find the index of a plugin's port by long or short name
     int getPortIdx(string name);

@@ -17,6 +17,7 @@
 #include <vector>
 #include <iostream>
 
+#include "channel.h"
 #include "plugins.h"
 #include "exception.h"
 
@@ -39,17 +40,17 @@ PluginData::PluginData(string l,const LADSPA_Descriptor *d){
             if(hd & LADSPA_HINT_LOGARITHMIC)
                 defaultPortValues[i]=exp(log(lower)*0.75f+log(upper)*0.25f);
             else
-                defaultPortValues[i]=exp(lower*0.75f+upper*0.25f);
+                defaultPortValues[i]=lower*0.75f+upper*0.25f;
         } else if(hd & LADSPA_HINT_DEFAULT_MIDDLE){
             if(hd & LADSPA_HINT_LOGARITHMIC)
                 defaultPortValues[i]=exp(log(lower)*0.5f+log(upper)*0.5f);
             else
-                defaultPortValues[i]=exp(lower*0.5f+upper*0.5f);
+                defaultPortValues[i]=lower*0.5f+upper*0.5f;
         } else if(hd & LADSPA_HINT_DEFAULT_HIGH){
             if(hd & LADSPA_HINT_LOGARITHMIC)
                 defaultPortValues[i]=exp(log(lower)*0.25f+log(upper)*0.75f);
             else
-                defaultPortValues[i]=exp(lower*0.25f+upper*0.75f);
+                defaultPortValues[i]=lower*0.25f+upper*0.75f;
         } else if(hd & LADSPA_HINT_DEFAULT_MAXIMUM)
             defaultPortValues[i]=lower;
         else if(hd & LADSPA_HINT_DEFAULT_0)
@@ -122,13 +123,16 @@ PluginInstance::PluginInstance(PluginData *plugin) : portsConnected(128){
     p=plugin;
     h=(*p->desc->instantiate)(p->desc,samprate);
     
-    // connect up the ports to the defaults
+    // connect up the ports to the defaults, and create output buffers
     for(unsigned int i=0;i<p->desc->PortCount;i++){
         portsConnected[i]=false;
         if(p->defaultPortValues.find(i)!=p->defaultPortValues.end()){
             float *addr = &(p->defaultPortValues[i]);
             (*p->desc->connect_port)(h,i,addr);
             portsConnected[i]=true;
+        }
+        if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
+            opbufs[i] = new float[BUFSIZE];
         }
     }
     isActive=false;
@@ -140,6 +144,11 @@ PluginInstance::~PluginInstance(){
     if(isActive)
         (*p->desc->deactivate)(h);
     (*p->desc->cleanup)(h);
+    for(unsigned int i=0;i<p->desc->PortCount;i++){
+        if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
+            delete opbufs[i];
+        }
+    }
 }
 
 void PluginInstance::activate(){

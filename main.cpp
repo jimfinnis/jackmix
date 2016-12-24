@@ -141,6 +141,7 @@ optsdone:
     if(tok.getcurrent() == T_DEFAULT){
         if(!deflt_ok)
             throw _("default not permitted here");
+        n = defval;
     } else if(tok.getcurrent() == T_FLOAT || tok.getcurrent()==T_INT)
         n = tok.getfloat();
     else
@@ -245,26 +246,11 @@ void parseCtrl(){
     
 }
 
-// parse plugin data: input and output
+// parse plugin data: currently just shortnames for ports
 void parsePlugin(){
     string name=getnextident();
     PluginData *p = PluginMgr::getPlugin(name);
     if(tok.getnext()!=T_OCURLY)expected("'{'");
-    if(tok.getnext()!=T_IN)expected("'in'");
-    
-    p->numins=0;
-    p->ins[p->numins++] = p->getPortIdx(getnextidentorstring());
-    if(tok.getnext()==T_COMMA){
-        p->ins[p->numins++] = p->getPortIdx(getnextidentorstring());
-    } else tok.rewind();
-    
-    if(tok.getnext()!=T_OUT)expected("'out'");
-    
-    p->numouts=0;
-    p->outs[p->numouts++] = p->getPortIdx(getnextidentorstring());
-    if(tok.getnext()==T_COMMA){
-        p->outs[p->numouts++] = p->getPortIdx(getnextidentorstring());
-    } else tok.rewind();
     
     if(tok.getnext()==T_NAMES){
         parseList([=]{
@@ -280,7 +266,7 @@ void parsePlugin(){
     
     
 void parse(const char *s){
-    extern void parseChain();
+    extern void parseStereoChain();
     tok.reset(s);
     for(;;){
         switch(tok.getnext()){
@@ -290,8 +276,8 @@ void parse(const char *s){
         case T_CTRL:
             parseList(parseCtrl);
             break;
-        case T_FX:
-            parseList(parseChain);
+        case T_CHAIN:
+            parseList(parseStereoChain);
             break;
         case T_PLUGINS:
             parseList(parsePlugin);
@@ -329,7 +315,8 @@ void init(const char *file){
     if(samprate<10000)
         throw _("weird sample rate: %d",samprate);
     
-    PluginMgr::loadFilesIn("/usr/lib/ladspa");
+//    PluginMgr::loadFilesIn("/usr/lib/ladspa");
+    PluginMgr::loadFilesIn("./testpl");
     
     // set callbacks
     jack_set_process_callback(client, process, 0);

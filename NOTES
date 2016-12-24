@@ -18,13 +18,10 @@ A single physical control input can control multiple control channels,
 so (say) midi cc 15 on midi channel 1 can control several gains and pans.
 
 Todo:
-* control channel parsing and testing
-* channel parsin
-* basic mixing and panning
 * effects chains
+* get output buffer from output effect
 
-
-Data flow for controls
+Data flows for control data:
     In source and main threads:
         Data arrives at source, which is polling.
         Source works out which controller(s) (Ctrls) need updating with it.
@@ -36,4 +33,55 @@ Data flow for controls
             the values it controls
         Values update periodically to bring them closer to target
         Channels/Effects get() values to work with.
+
+
+Audio data flow (in process thread):        
+    for each effect: zero effect input buffers
+   
+    for each channel: (mixChannels calls mix)
+        mix the channel into the stereo buffers
+        if there is a send,
+            for mono pre-fade send, add left channel to
+                given input in given chain
+            for stereo pre-fade send, add channels to given
+                inputs in given chain
+            for mono post-fade send, add either left or right
+                tmp channel to given input in given chain
+            for stereo post-fade send, add tmp channels to given
+                inputs in given chain
+                    
+    for each chain:
+        input buffers should all be filled, and if not will be zero
+        for each effect:
+            ensure all ports connected to buffers (done at parsing)
+            run effect
+            output buffers should now have data
+        apply pan and gain to output buffers and add to output.
+        
+
+How effect chains work:
+    Each chain has a pair of named inputs, which are mono buffers,
+    given the special names LEFT and RIGHT.
+
+    The outputs of a chain are 2 pointers to some output buffers within
+    owned effects. They have associated gain/pan values. 
     
+    chains are sets of effects, stored as both a map (so we can
+    get the effect) and a vector (so we can run them in order added).
+
+    Each effect has a unique name within the chain (not its effect
+    name) so we can ID multiple instances of the same effect uniquely
+    
+    Each output port in the effect owns a buffer to write to. These
+    are zeroed on initialisation.
+    
+    When a chain runs, the inputs should have been filled by sends.
+    Each effect runs in the order they were added.
+    
+    Each effect reads its inputs - which can come from a chain input
+    or the output of another effect - and runs, writing to its output
+    buffer.
+    
+    It may be necessary to give all effects a buffer for each input,
+    if we need to set gains. But hopefully effects will handle this
+    internally.

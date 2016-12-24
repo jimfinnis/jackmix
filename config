@@ -15,21 +15,47 @@ ctrl {
 }
 
 plugins {
+    # just specifies short names for ports
     gverb {
-        in "Input"
-        out "Left output","Right output"
         names {
-            roomsize "Roomsize (m)"
+            roomsize "Roomsize (m)",
+            outl "Left output",
+            outr "Right output",
+            input "Input"
         }
     }
 }
     
 
-fx {
+chain {
+    # an effect chain
+
     testchain1 {
-        gverb {
-            roomsize default
+
+        # where the two outputs come from: ports within effects
+
+        out gverb1:outl, gverb1:outr
+
+        # the list of effects
+
+        fx {
+
+            # LADSPA effect label and name of effect in this chain
+
+            gverb gverb1
+
+            # where the inputs for this effect come from: either
+            # LEFT, RIGHT or outputs of other effects. 
+
+            in {
+                # my "input" port comes from LEFT.
+                input from LEFT # others would be after commas.
+            }
+            # parameters
+
+            params {
+                roomsize default
+            }
         }
-        # NOT PARSING THESE YET
     }
 }
