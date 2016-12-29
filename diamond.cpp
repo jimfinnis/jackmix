@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <diamondapparatus/diamondapparatus.h>
 #include "ctrl.h"
+#include "exception.h"
 #include "diamond.h"
 #include "stringsplit.h"
 
@@ -23,7 +24,11 @@ using namespace diamondapparatus;
 unordered_map<string,unordered_map<int,vector<Ctrl*> > >sources;
 
 void initDiamond(){
-    diamondapparatus::init();
+    try {
+        diamondapparatus::init();
+    } catch (DiamondException e){
+        throw _("Fatal error in Diamond Apparatus: %s\n",e.what());
+    }
 }
 
 void addDiamondSource(string source,Ctrl *c){
@@ -42,8 +47,7 @@ void addDiamondSource(string source,Ctrl *c){
     
         sources[v[0]][index].push_back(c);
     } catch (DiamondException e){
-        printf("Fatal error in Diamond Apparatus: %s\n",e.what());
-        exit(1);
+        throw _("Fatal error in Diamond Apparatus: %s\n",e.what());
     }
 }
 

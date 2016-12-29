@@ -36,6 +36,9 @@ noconvert: T_NOCONVERT
 smooth: T_SMOOTH
 default: T_DEFAULT
 fx: T_FX
+return: T_RETURN
+prefade: T_PREFADE
+postfade: T_POSTFADE
 chain: T_CHAIN
 params: T_PARAMS
 plugins: T_PLUGINS

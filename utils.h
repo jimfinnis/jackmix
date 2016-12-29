@@ -7,6 +7,8 @@
 #ifndef __UTILS_H
 #define __UTILS_H
 
+#include <iostream>
+
 static const float PI = 3.1415927f;
 
 
@@ -44,6 +46,34 @@ inline void panstereo(float *__restrict leftout,
     }
         
 }
+
+inline void addbuffers(float *__restrict dest,
+                       float *__restrict v, int n, float gain){
+    for(int i=0;i<n;i++){
+        *dest++ += gain**v++;
+    }
+}
+
+class Monitor {
+private:
+    const char *name;
+    float cur;
+    int iv;
+public:
+    int maxiv;
+    Monitor(const char *n){name=n;cur=0;iv=0;maxiv=10;}
+    Monitor(const char *n,int i){name=n;cur=0;iv=0;maxiv=i;}
+    void in(float *v,int n){
+        for(int i=0;i<n;i++){
+            float q = fabs(*v++);
+            cur = q*0.01f + cur*0.99f;
+        }
+    }
+    float get(){return cur;}
+};
+    
+    
+
 
 
 #endif /* __UTILS_H */

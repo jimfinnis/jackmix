@@ -14,7 +14,9 @@
 #include "exception.h"
 #include "plugins.h"
 #include "value.h"
+#include "global.h"
 #include "parser.h"
+#include "fx.h"
 
 using namespace std;
 
@@ -30,14 +32,12 @@ struct InputParseData {
     string fromeffect,fromport;
 };
 
-struct Chain {
+struct Chain : public ChainInterface {
     // vector so we can run in order
     vector<PluginInstance *> fxlist;
     // map so we can find
     unordered_map<string,PluginInstance *> fxmap;
     
-    // these are the two input buffers for the chain
-    float inpleft[BUFSIZE],inpright[BUFSIZE];
     
     // input connection data to resolve later, indexed
     // by same order as fxlist, then within that, by input.
@@ -58,38 +58,51 @@ struct Chain {
                 float *buf;
                 switch(ipd.channel){
                 case 0:
+                    cout << "Left input";
                     buf = inpleft;
                     break;
                 case 1:
+                    cout << "Right input";
                     buf = inpright;
                     break;
-                case -1:{
-                    // get the effect
-                    if(fxmap.find(ipd.fromeffect)==fxmap.end())
-                        throw _("cannot find source effect '%s'",ipd.fromeffect.c_str());
-                    PluginInstance *frominst = fxmap[ipd.fromeffect];
-                    
-                    int fpidx = frominst->p->getPortIdx(ipd.fromport);
-                    
-                    if(frominst->opbufs.find(fpidx)==frominst->opbufs.end())
-                        throw _("bad port as source port: %s:%s",
-                                ipd.fromeffect.c_str(),
-                                ipd.fromport.c_str());
-                    buf=frominst->opbufs[fpidx];
-                }
+                case -1:
+                    cout << "Port " << ipd.fromeffect << ":" << ipd.fromport;
+                          
+                    buf = getPort(ipd.fromeffect,ipd.fromport);
                     break;
                 default:
                     throw _("weird case in ipd channel: %d\n",ipd.channel);
                 }
                 
                 // make the connection for the input port
+                cout << " has address " << buf;
+                cout << ", connecting to " << ipd.port << endl;
                 (*p->p->desc->connect_port)(p->h,ipd.port,buf);
             }
         }
     }
+    
+    float *getPort(string effect,string port){
+        if(fxmap.find(effect)==fxmap.end())
+            throw _("cannot find source effect '%s'",effect.c_str());
+        PluginInstance *inst = fxmap[effect];
+        int fpidx = inst->p->getPortIdx(port);
+                    
+        if(inst->opbufs.find(fpidx)==inst->opbufs.end())
+            throw _("bad port as source port: %s:%s",
+                    effect.c_str(),
+                    port.c_str());
+        return inst->opbufs[fpidx];
+    }
+    
+    virtual void run(unsigned int nframes){
+        vector<PluginInstance *>::iterator it;
+        for(it = fxlist.begin();it!=fxlist.end();it++){
+            PluginInstance *p = *it;
+            (*p->p->desc->run)(p->h,nframes);
+        }
+    }
 };
-
-
 
 
 /// The effects chains are stored as an unordered map of string to chain.
@@ -214,9 +227,34 @@ void parseStereoChain(){
     if(tok.getnext()!=T_CCURLY)expected("'}'");
     
     // now all the effects are parsed and created, resolve
-    // the references
+    // the internal references
     
     chain.resolveInputs();
-        
+    
+    // and then get pointers to the output buffers
+    
+    chain.leftoutbuf = chain.getPort(leftouteffect,leftoutport);
+    chain.rightoutbuf = chain.getPort(rightouteffect,rightoutport);
 }
     
+ChainInterface *ChainInterface::find(std::string name){
+    if(chains.find(name)==chains.end())
+        throw _("chain %s does not exist",name.c_str());
+    
+    return &chains[name];
+}
+
+void ChainInterface::zeroAllInputs(){
+    unordered_map<string,Chain>::iterator it;
+    for(it=chains.begin();it!=chains.end();it++){
+        it->second.zeroInputs();
+    }
+}
+
+void ChainInterface::runAll(unsigned int nframes){
+    unordered_map<string,Chain>::iterator it;
+    for(it=chains.begin();it!=chains.end();it++){
+        it->second.run(nframes);
+    }
+}
+

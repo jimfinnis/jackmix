@@ -128,11 +128,16 @@ PluginInstance::PluginInstance(PluginData *plugin) : portsConnected(128){
         portsConnected[i]=false;
         if(p->defaultPortValues.find(i)!=p->defaultPortValues.end()){
             float *addr = &(p->defaultPortValues[i]);
+            cout << "Connecting port " << p->desc->PortNames[i]
+                  << "(" << i << ") with " << addr <<endl;
             (*p->desc->connect_port)(h,i,addr);
             portsConnected[i]=true;
         }
         if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
             opbufs[i] = new float[BUFSIZE];
+            cout << "Connecting OUTPUT port " << p->desc->PortNames[i]
+                  << "(" << i << ") with " << opbufs[i] <<endl;
+            (*p->desc->connect_port)(h,i,opbufs[i]);
         }
     }
     isActive=false;
@@ -140,7 +145,6 @@ PluginInstance::PluginInstance(PluginData *plugin) : portsConnected(128){
 }
 
 PluginInstance::~PluginInstance(){
-    checkPortsConnected();
     if(isActive)
         (*p->desc->deactivate)(h);
     (*p->desc->cleanup)(h);
@@ -152,12 +156,14 @@ PluginInstance::~PluginInstance(){
 }
 
 void PluginInstance::activate(){
+    checkPortsConnected();
     (*p->desc->activate)(h);
     isActive=true;
 }
 
 void PluginInstance::connect(string name,float *v){
     int idx = p->getPortIdx(name);
+    cout << "Connecting port " << name << " with address " << v << endl;
     (*p->desc->connect_port)(h,idx,v);
     portsConnected[idx]=true;
 }

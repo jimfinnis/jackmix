@@ -18,9 +18,14 @@ ctrllist = ctrl
 # default channel is stereo
 
 channel = ident ': ' 
+    [returninfo] # if it's a return it won't get a JACK port.
     'gain' value
     'pan' value 
     ['mono'|'stereo'] [sendinfo];
+
+# name of an fx chain    
+returninfo = 'return' ident
+
 
 # value here is the gain. Post or pre indicates post- or pre-fader,
 # default is post.

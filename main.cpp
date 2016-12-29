@@ -48,7 +48,13 @@ inline void subproc(float *left,float *right,int offset,int n){
     // as required, mixing them into stereo if needed. Add the resulting
     // stereo buffers into the output buffers.
     
-    Channel::mixChannels(left,right,offset,n);
+    ChainInterface::zeroAllInputs();
+    // get input channels and mix into buffers (including send chain inputs)
+    Channel::mixInputChannels(left,right,offset,n);
+    // process effects
+    ChainInterface::runAll(n);
+    // mix effects return channels into output
+    Channel::mixReturnChannels(left,right,offset,n);
 }
 
 /*
@@ -82,6 +88,7 @@ int process(jack_nframes_t nframes, void *arg){
         subproc(outleft+i,outright+i,i,BUFSIZE);
     }
     subproc(outleft+i,outright+i,i,nframes-i);
+    
     return 0;
 }
 void jack_shutdown(void *arg)
@@ -178,6 +185,13 @@ void parseChan(){
     
     printf("Parsing channel %s\n",name.c_str());
     
+    string returnChainName;
+    bool isReturn=false;
+    if(tok.getnext()==T_RETURN){
+        isReturn=true;
+        returnChainName = getnextident();
+    }else tok.rewind();
+        
     
     if(tok.getnext()!=T_GAIN)
         expected("'gain'");
@@ -194,14 +208,27 @@ void parseChan(){
     default:tok.rewind();break;
     }
     
-    if(tok.getnext()==T_SEND){
-        throw _("FX not implemented yet");
-    } else tok.rewind();
-    
     // can now create the channel. The Channel class maintains
     // a static list of channels to which the ctor will add the
     // new one.
-    new Channel(name,mono?1:2,gain,pan);
+    Channel *ch = new Channel(name,mono?1:2,gain,pan,isReturn,
+                              returnChainName);
+    
+    // add info about chains, which will be resolved later.
+    while(tok.getnext()==T_SEND){
+        string chain = getnextident();
+        if(tok.getnext()!=T_GAIN)expected("'gain'");
+        Value *chaingain=parseValue();
+        
+        int t = tok.getnext();
+        bool postfade=false;
+        if(t==T_POSTFADE)postfade=true;
+        else if(t!=T_PREFADE)tok.rewind();
+        
+        ch->addChainInfo(chain,chaingain,postfade);
+    }
+    tok.rewind(); // should leave us at a comma
+    
     
 }
 
@@ -356,6 +383,7 @@ void init(const char *file){
             fclose(a);
             parse(fbuf);
             free(fbuf);
+            
         } else 
             throw _("cannot open config file");
     } catch(string s){
@@ -371,6 +399,7 @@ void init(const char *file){
         printf("WARN: redundant char* error here\n");
         throw string(s);
     }
+    Channel::resolveAllChannelChains();
 }
 
 int main(int argc,char *argv[]){

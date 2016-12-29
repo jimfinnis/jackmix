@@ -1,9 +1,15 @@
 chans {
     chan1 : gain db smooth 0.99 0(gain0) 
-            pan smooth 0.99 0.2(pan0),
+            pan smooth 0.99 0.2(pan0)
+            send testchain1 gain db 1,
             
     chan2 : gain db smooth 0.99 1(gain1)
-            pan smooth 0.99 0.8(pan1)
+            pan smooth 0.99 0.8(pan1),
+            
+    chan3 : return testchain1
+            gain db 1(gain2)
+            pan 0.5(pan2)
+            
 }
 
 ctrl {
@@ -32,7 +38,7 @@ chain {
 
     testchain1 {
 
-        # where the two outputs come from: ports within effects
+        # where the two outputs are: ports within effects
 
         out gverb1:outl, gverb1:outr
 
