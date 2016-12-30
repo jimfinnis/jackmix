@@ -38,14 +38,17 @@ sendinfo = 'send' ident ('post'|'pre') value;
 # If smooth is present, the default smoothing factor is changed.
 # The default is 0.5 - the closer to 1, the slower the value changes
 # are tracked. 0 is no smoothing, 0.99 takes a few seconds.
+# Default range is 0-1, unless DB is set when it is -60 to 0.
+# 'default' is used in effects only, and sets the default value.
+# In effects, 'range' is not permitted.
 
-value = [{valopt}] number [ '(' ctrlname ')' ];
-valopt = 'db' | ('smooth' float)
+value = [{valopt}]  (number|'default') [ '(' ctrlname ')' ];
+valopt = 'db' | ('smooth' float) | ('range' number ',' number)
 
-ctrl = ident ':' sourcespec [noconvert] [inrangespec] [outrangespec] ;
+
+ctrl = ident ':' sourcespec [noconvert] [inrangespec] ;
 sourcespec = string;
 inrangespec = 'in' number ': number;
-outrangespec = 'out' number ': number;
 
 
 

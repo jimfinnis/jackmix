@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "ladspa.h"
+#include "bounds.h"
 
 #ifndef __PLUGINS_H
 #define __PLUGINS_H
@@ -58,10 +59,16 @@ struct PluginData {
     
     /// try to find the index of a plugin's port by long or short name
     int getPortIdx(string name);
+    
     /// get the default for a parameter, returning false if none.
     bool getDefault(string pname,float *f);
     
+    /// get the bounds for a port
+    Bounds getBounds(string pname);
+    
     PluginData(string l,const LADSPA_Descriptor *d);
+    
+    
     
     PluginInstance *instantiate();
 };

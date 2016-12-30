@@ -41,6 +41,8 @@ prefade: T_PREFADE
 postfade: T_POSTFADE
 chain: T_CHAIN
 params: T_PARAMS
+min: T_MIN
+max: T_MAX
 plugins: T_PLUGINS
 names: T_NAMES
 from: T_FROM

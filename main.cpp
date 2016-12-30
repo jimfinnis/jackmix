@@ -22,6 +22,7 @@
 #include "tokens.h"
 #include "plugins.h"
 #include "parser.h"
+#include "monitor.h"
 #include "diamond.h"
 
 using namespace std;
@@ -62,6 +63,20 @@ inline void subproc(float *left,float *right,int offset,int n){
  */
 
 static volatile bool parsedAndReady=false;
+static RingBuffer<MonitorData> monring(20);
+RingBuffer<MonitorCommand> moncmdring(20);
+
+static void processMonitorCommand(MonitorCommand& c){
+    switch(c.cmd){
+    case ChangeGain:
+        c.chan->gain->nudge(c.v);
+        break;
+    case ChangePan:
+        c.chan->pan->nudge(c.v);
+        break;
+    }
+}
+
 int process(jack_nframes_t nframes, void *arg){
     if(!parsedAndReady)return 0;
     
@@ -88,6 +103,23 @@ int process(jack_nframes_t nframes, void *arg){
         subproc(outleft+i,outright+i,i,BUFSIZE);
     }
     subproc(outleft+i,outright+i,i,nframes-i);
+    
+    // write to the monitoring ring buffer
+    
+    if(monring.getWriteSpace()>3){
+        MonitorData m;
+        m.master.l = Channel::getPeakL();
+        m.master.r = Channel::getPeakR();
+        Channel::writeMons(&m);
+        monring.write(m);
+    }
+    
+    // read any commands from the monitor
+    MonitorCommand cmd;
+    while(moncmdring.getReadSpace()){
+        moncmdring.read(cmd);
+        processMonitorCommand(cmd);
+    }
     
     return 0;
 }
@@ -117,23 +149,38 @@ void shutdown(){
 Tokeniser tok;
 
 // values are <number>['('<ctrl>')'], where <number> might be "default"
-// if deflt_ok is true. If "default" is used, the value to set is passed
-// in.
-Value *parseValue(bool deflt_ok=false,float defval=0)
+// bounds: a Bounds structure containing an upper and/or lower bound,
+// which cannot be overriden with min/max (used in effects).
+Value *parseValue(Bounds b)
 {
     Value *v = new Value();
-
+    float rmin=0,rmax=1;
     float smooth = 0.5;
+    
     for(;;){
         switch(tok.getnext()){
         case T_DB:
             v->setdb();
+            // might get overwritten later..
+            rmin=-60;rmax=0;
+            break;
+        case T_MIN:
+            if(b.flags & Bounds::Lower)
+                throw _("'min' not permitted, min is fixed to %f",b.lower);
+            rmin = getnextfloat();
+            break;
+        case T_MAX:
+            if(b.flags & Bounds::Upper)
+                throw _("'max' not permitted, max is fixed to %f",b.upper);
+            rmax = getnextfloat();
             break;
         case T_SMOOTH:
             smooth = tok.getnextfloat();
             if(tok.iserror())expected("number");
             break;
         case T_DEFAULT:
+            if(!(b.flags & Bounds::Default))
+                throw _("no default is provided for this value");
         case T_INT:
         case T_FLOAT:
             goto optsdone;
@@ -143,18 +190,23 @@ Value *parseValue(bool deflt_ok=false,float defval=0)
     }
     
 optsdone:
+    
+    if(b.flags & Bounds::Upper)
+        rmax = b.upper;
+    if(b.flags & Bounds::Lower)
+        rmin = b.lower;
+    
     // use the default value passed in if we have one and it's allowed
     float n;
-    if(tok.getcurrent() == T_DEFAULT){
-        if(!deflt_ok)
-            throw _("default not permitted here");
-        n = defval;
+    if(tok.getcurrent() == T_DEFAULT){ // checked above
+        n = b.deflt;
     } else if(tok.getcurrent() == T_FLOAT || tok.getcurrent()==T_INT)
         n = tok.getfloat();
     else
         expected("number or 'default'");
     
     v->setdef(n);
+    v->setrange(rmin,rmax);
     v->reset();
     
     if(tok.getnext()==T_OPREN){
@@ -191,15 +243,14 @@ void parseChan(){
         isReturn=true;
         returnChainName = getnextident();
     }else tok.rewind();
-        
     
     if(tok.getnext()!=T_GAIN)
         expected("'gain'");
-    Value *gain = parseValue();
+    Value *gain = parseValue(Bounds());
     
     if(tok.getnext()!=T_PAN)
         expected("'pan'");
-    Value *pan = parseValue();
+    Value *pan = parseValue(Bounds());
     
     bool mono=false;
     switch(tok.getnext()){
@@ -218,7 +269,7 @@ void parseChan(){
     while(tok.getnext()==T_SEND){
         string chain = getnextident();
         if(tok.getnext()!=T_GAIN)expected("'gain'");
-        Value *chaingain=parseValue();
+        Value *chaingain=parseValue(Bounds());
         
         int t = tok.getnext();
         bool postfade=false;
@@ -248,28 +299,16 @@ void parseCtrl(){
     Ctrl *c = Ctrl::createOrFind(name);
     c->setsource(spec);
     
-    if(tok.getnext()==T_NOCONVERT){
-        c->noconvert();
-    } else {
-        tok.rewind();
-        if(tok.getnext()==T_IN){
-            float inmin = tok.getnextfloat();
-            if(tok.iserror())expected("float (in input range)");
-            if(tok.getnext()!=T_COLON)expected("':' in input range");
-            float inmax = tok.getnextfloat();
-            if(tok.iserror())expected("float (in input range)");
-            c->setinrange(inmin,inmax);
-        }else tok.rewind();
-        
-        if(tok.getnext()==T_OUT){
-            float outmin = tok.getnextfloat();
-            if(tok.iserror())expected("float (in output range)");
-            if(tok.getnext()!=T_COLON)expected("':' in output range");
-            float outmax = tok.getnextfloat();
-            if(tok.iserror())expected("float (in output range)");
-            c->setoutrange(outmin,outmax);
-        }else tok.rewind();
-    }
+    // get the in-range, which converts to 0-1.
+    
+    if(tok.getnext()!=T_IN)expected("'in'");
+    
+    float inmin = tok.getnextfloat();
+    if(tok.iserror())expected("float (in input range)");
+    if(tok.getnext()!=T_COLON)expected("':' in input range");
+    float inmax = tok.getnextfloat();
+    if(tok.iserror())expected("float (in input range)");
+    c->setinrange(inmin,inmax);
     
 }
 
@@ -290,8 +329,8 @@ void parsePlugin(){
     if(tok.getnext()!=T_CCURLY)expected("'}'");
     
 }
-    
-    
+
+
 void parse(const char *s){
     extern void parseStereoChain();
     tok.reset(s);
@@ -342,7 +381,7 @@ void init(const char *file){
     if(samprate<10000)
         throw _("weird sample rate: %d",samprate);
     
-//    PluginMgr::loadFilesIn("/usr/lib/ladspa");
+    //    PluginMgr::loadFilesIn("/usr/lib/ladspa");
     PluginMgr::loadFilesIn("./testpl");
     
     // set callbacks
@@ -371,7 +410,7 @@ void init(const char *file){
         tok.setname("<in>");
         tok.settokens(tokens);
         tok.setcommentlinesequence("#");
-//        tok.settrace(true);
+        //        tok.settrace(true);
         FILE *a = fopen(file,"r");
         if(a){
             fseek(a,0L,SEEK_END);
@@ -402,6 +441,23 @@ void init(const char *file){
     Channel::resolveAllChannelChains();
 }
 
+void loop(){
+    MonitorUI mon;
+    while(1){
+        usleep(100000);
+        MonitorData mdat;
+//        printf("%ld\n",monring.getWriteSpace());
+        while(monring.getReadSpace())
+            monring.read(mdat);
+        pollDiamond();
+        //        printf("%f - %f\n",Channel::getPeakL(),Channel::getPeakR());
+        Channel::resetPeak();
+        
+        mon.display(&mdat);
+        mon.handleInput();
+    }
+}
+
 int main(int argc,char *argv[]){
     
     try {
@@ -416,12 +472,13 @@ int main(int argc,char *argv[]){
     
     Channel::resetPeak();
     parsedAndReady=true;
-    while(1){
-        usleep(100000);
-        pollDiamond();
-        printf("%f - %f\n",Channel::getPeakL(),Channel::getPeakR());
-        Channel::resetPeak();
+    
+    try {
+        loop();
+    } catch(string s){
+        cout << "Fatal error: " << s << endl;
     }
+    
     
     shutdown();
 }

@@ -10,9 +10,8 @@ own parameters.
 All values (gain, pans, fx params) have an optional ctrl channel name
 in brackets. This specifies a control channel which can change the value.
 Control channels have a name, an input (diamond variable, midi cc, OSC??)
-and a mapping to apply to the input range. Input ranges are all normalized
-to 0-1 (diamond has to make some assumptions here) before the mapping is
-applied.
+and a mapping to get the value to 0-1 range. The 0-1 value is mapped
+to the final range when set in the controlled Value.
 
 A single physical control input can control multiple control channels,
 so (say) midi cc 15 on midi channel 1 can control several gains and pans.
@@ -33,7 +32,6 @@ Data flows for control data:
             the values it controls
         Values update periodically to bring them closer to target
         Channels/Effects get() values to work with.
-
 
 Audio data flow (in process thread):        
     for each effect: zero effect input buffers
@@ -58,6 +56,18 @@ Audio data flow (in process thread):
             output buffers should now have data
         apply pan and gain to output buffers and add to output.
         
+
+Monitoring injects data directly into the Value, so that Values
+without controls can be changed in the monitor. 
+
+The monitor uses two ring buffers - one is fed with MonitorData
+blocks, containing data for all channels, in process(). It is 
+read by the main thread and written by the processing thread. The
+other contains MonitorCommand structures, and is written by the
+main thread and read by the processing thread.
+
+
+
 
 How effect chains work:
     Each chain has a pair of named inputs, which are mono buffers,

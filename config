@@ -1,20 +1,20 @@
 chans {
-    chan1 : gain db smooth 0.99 0(gain0) 
-            pan smooth 0.99 0.2(pan0)
+    chan1 : gain 0.7(gain0) 
+            pan 0.2(pan0)
             send testchain1 gain db 1,
             
-    chan2 : gain db smooth 0.99 1(gain1)
-            pan smooth 0.99 0.8(pan1),
+    chan2 : gain db 0(gain1)
+            pan 0.8(pan1),
             
-    chan3 : return testchain1
+    ret   : return testchain1
             gain db 1(gain2)
             pan 0.5(pan2)
             
 }
 
 ctrl {
-    gain0 : "/gains:0" in 0:1024 out -60:0,
-    gain1 : "/gains:1" in 0:1024 out -60:0,
+    gain0 : "/gains:0" in 0:1024,
+    gain1 : "/gains:1" in 0:1024,
        
     pan0 : "/pans:0" in 0:1024,
     pan1 : "/pans:1" in 0:1024

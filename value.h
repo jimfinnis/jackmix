@@ -30,11 +30,6 @@ class Value {
     /// value(t) = value(t-1)*smooth + target*(1-smooth)
     float smooth;
     
-    /// if true, value is expected to be -60 - 0 and is converted
-    /// to a ratio 0-1 on get. Any ctrl value should also be log
-    /// scale.
-    bool db;
-    
     /// list of all values
     static std::vector<Value *> values;
     
@@ -44,15 +39,23 @@ public:
         deflt=0;
         smooth=0.5;
         db=false;
+        mn=0;mx=1;
         values.push_back(this);
     }
+    
+    /// Range -  typically -60 to 0 for DB but doesn't have to be.
+    float mn,mx;
+    /// if true, value is expected to be -60 - 0 and is converted
+    /// to a ratio 0-1 on setTarget(). 
+    bool db;
+    
     
     /// set the default
     Value *setdef(float def){
         deflt=def;
         return this;
     }
-    /// set DB (decibel conversion will be done on get)
+    /// set DB (decibel conversion will be done on setTarget())
     Value *setdb(){
         db=true;
         return this;
@@ -62,8 +65,13 @@ public:
         smooth=s;
         return this;
     }
+    /// set range
+    Value *setrange(float a,float b){
+        mn=a;mx=b;
+        return this;
+    }
     
-    /// set the value from a control - actually sets the target
+    /// set the value - actually sets the target
     /// value of an LPF to avoid artifacts. The value itself is set
     /// in update(). Performs db conversion.
     
@@ -72,6 +80,20 @@ public:
             target=powf(10.0,v*0.1f);
         else
             target=v;
+    }
+    
+    /// sets the target value, converting from 0-1 first.
+    void setTargetConvert(float f){
+        f *= (mx-mn);
+        f += mn;
+        setTarget(f);
+    }
+    
+    /// convert from target value to 0-1 range (used for nudge,etc.)
+    float convertFromTarget(){
+        // db conversion required perhaps
+        float f = db ? 10.0*log10(target) : target;
+        return (f-mn)/(mx-mn);
     }
     
     /// get the value
@@ -88,8 +110,8 @@ public:
     
     /// reset value and target to default
     void reset(){
-        value=deflt;
-        target=deflt;
+        value = db ? powf(10.0,deflt*0.1f) : deflt;
+        target=value;
     }
     
     /// perform periodic update
@@ -99,7 +121,15 @@ public:
     
     /// update all values
     static void updateAll();
-        
+    
+    
+    void nudge(float v){
+        float f = convertFromTarget();
+        f += v*0.1f;
+        if(f<0)f=0;
+        if(f>1)f=1;
+        setTargetConvert(f);
+    }
     
           
 };   

@@ -7,6 +7,7 @@
 #include <string.h>
 #include "channel.h"
 #include "utils.h"
+#include "monitor.h"
 
 // two sets of channels - input channels (which have a jack port)
 // and return channels (which mix in the output of ladspa effects)
@@ -57,6 +58,28 @@ void Channel::mixReturnChannels(float *__restrict leftout,
     }
 }
 
+void Channel::writeMons(MonitorData *m){
+    std::vector<Channel *>::iterator it;
+    for(it=inputchans.begin();it!=inputchans.end();it++){
+        Channel *c= (*it);
+        ChanMonData *cm = m->add();
+        if(cm){
+            cm->init(c->name,
+                     c->monl.get(),c->monr.get(),
+                     c->gain->get(),c->pan->get(),c);
+        }
+    }
+    for(it=returnchans.begin();it!=returnchans.end();it++){
+        Channel *c= (*it);
+        ChanMonData *cm = m->add();
+        if(cm){
+            cm->init(c->name,
+                     c->monl.get(),c->monr.get(),
+                     c->gain->get(),c->pan->get(),c);
+        }
+    }
+}
+
 
 void Channel::mix(float *__restrict leftout,
                   float *__restrict rightout,int offset,int nframes){
@@ -78,7 +101,9 @@ void Channel::mix(float *__restrict leftout,
         leftout[i] += tmpl[i];
         rightout[i] += tmpr[i];
     }
-    mon.in(tmpl,nframes);
+    // monitoring
+    monl.in(tmpl,nframes);
+    monr.in(tmpr,nframes);
     
     // mix into chains
     std::vector<ChainFeed>::iterator it;

@@ -20,6 +20,7 @@
 #include "channel.h"
 #include "plugins.h"
 #include "exception.h"
+#include "bounds.h"
 
 using namespace std;
 extern uint32_t samprate;
@@ -33,6 +34,13 @@ PluginData::PluginData(string l,const LADSPA_Descriptor *d){
         int hd = h->HintDescriptor;
         float lower = h->LowerBound;
         float upper = h->UpperBound;
+        
+        if(h->HintDescriptor & LADSPA_HINT_SAMPLE_RATE){
+            if(h->HintDescriptor & LADSPA_HINT_BOUNDED_BELOW)
+                lower *= samprate;
+            if(h->HintDescriptor & LADSPA_HINT_BOUNDED_ABOVE)
+                upper *= samprate;
+        }
         
         if(hd & LADSPA_HINT_DEFAULT_MINIMUM)
             defaultPortValues[i]=lower;
@@ -98,7 +106,29 @@ bool PluginData::getDefault(string pname,float *f){
         *f = defaultPortValues[idx];
     return true;
 }
-        
+
+Bounds PluginData::getBounds(string pname) {
+    Bounds b;
+    b.flags = 0;
+    
+    int idx = getPortIdx(pname);
+    const LADSPA_PortRangeHint *h = desc->PortRangeHints+idx;
+    if(h->HintDescriptor & LADSPA_HINT_BOUNDED_BELOW){
+        b.lower = h->LowerBound;
+        if(h->HintDescriptor & LADSPA_HINT_SAMPLE_RATE)
+            b.lower *= samprate;
+        b.flags |= Bounds::Lower;
+    }
+    if(h->HintDescriptor & LADSPA_HINT_BOUNDED_ABOVE){
+        b.upper = h->UpperBound;
+        if(h->HintDescriptor & LADSPA_HINT_SAMPLE_RATE)
+            b.upper *= samprate;
+        b.flags |= Bounds::Upper;
+    }
+    if(getDefault(pname,&b.deflt))
+        b.flags |= Bounds::Default;
+    return b;
+}
 
 void PluginData::addShortPortName(string shortname,string longname){
     for(unsigned int i=0;i<desc->PortCount;i++){

@@ -85,6 +85,11 @@ public:
         return jack_ringbuffer_write_space(mRingBufferPtr) / sizeof(Type);
     }
     
+    /// Can we write?
+    bool canWrite(){
+        return getWriteSpace()>0;
+    }
+    
     /**
        @brief Read into dest
        

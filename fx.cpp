@@ -20,7 +20,7 @@
 
 using namespace std;
 
-Value *parseValue(bool deflt_ok=false,float defval=0);
+Value *parseValue(Bounds b);
 
 // stores temporary data about an input connection for an effect
 struct InputParseData {
@@ -176,14 +176,10 @@ void parseEffect(Chain &c){
         if(t!=T_STRING && t!=T_IDENT)
             expected("parameter name");
         string pname = tok.getstring();
-        
-        // get default value
-        float def=0;
-        bool hasdeflt = p->getDefault(pname,&def);
-        
-        // get value permitting "default" or not
-        Value *v = parseValue(hasdeflt,def);
-              printf("Param %s: %f\n",pname.c_str(),v->get());
+              
+        // parse the value, using the LADSPA hints for the param
+        Value *v = parseValue(p->getBounds(pname));
+        printf("Param %s: %f\n",pname.c_str(),v->get());
         // and connect it
         i->connect(pname,v->getAddr());
     });

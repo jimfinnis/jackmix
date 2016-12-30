@@ -23,6 +23,12 @@ inline string getnextident(){
     return string(tok.getstring());
 }
 
+inline float getnextfloat(){
+    float f = tok.getnextfloat();
+    if(tok.iserror())expected("'number'");
+    return f;
+}
+
 inline string getnextidentorstring(){
     int t = tok.getnext();
     if(t!=T_IDENT && t!=T_STRING)

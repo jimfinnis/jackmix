@@ -36,8 +36,6 @@ class Channel {
     std::string returnChainName;
     bool mono;
     
-    Value *pan,*gain;
-    
     static std::vector<Channel *> inputchans,returnchans;
     
     // after parsing, is traversed to build the actual chain pointers.
@@ -93,11 +91,13 @@ class Channel {
         }
     }
     
-    Monitor mon;
+    Monitor monl,monr;
     
 public:
+    Value *pan,*gain;
+    
     Channel(std::string n,int ch,Value *g,Value *p,bool isret,
-            std::string rcn="") : mon(n.c_str()){
+            std::string rcn="") : monl(n+"l"), monr(n+"r"){
         name = n;
         mono = ch==1;
         gain = g;
@@ -137,6 +137,8 @@ public:
             (*it)->resolveChains();
         }
     }
+    
+    static void writeMons(struct MonitorData* m);
     
     
     // mixes all input channels into the output buffer and into the send

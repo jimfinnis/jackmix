@@ -15,32 +15,13 @@
 
 /// this is a control channel, used to manage a list of values.
 /// It has an input range, which converts whatever the incoming
-/// data is into 0-1, and then to the output range.
-/// If convert is not set, no conversion is done.
-
-/// In general, the input range is used to convert the raw data to
-/// 0-1, while the output range is used to convert the data to
-/// a special range and is often omitted. Input range must be given.
-///
-/// The mapping process goes
-/// inputrange --inmin/inmax-> 0-1   --outmin/outmax-> output range
-
+/// data is into 0-1. This is converted to the value range
+/// by setTargetConvert() in Value.
 
 class Ctrl {
     /// the input mapping values, which convert the data coming
-    /// in into the 0-1 range. If db is true,
-    /// they instead map onto the -60 - 0 range.
+    /// in into the 0-1 range. 
     float inmin,inmax;
-    
-    /// the output mapping values, which convert the data in 0-1
-    /// or -60 to 0 range
-    /// range (i.e. after input mapping into the final value.
-    /// You'd probably not use these for db, but it is still
-    /// available. Decibel->ratio conversion is done in the value.
-    float outmin,outmax;
-    
-    /// if false, no conversion is done
-    bool convert;
     
     /// A list of the values this ctrl controls
     std::vector<Value *> values;
@@ -55,7 +36,6 @@ class Ctrl {
     /// from the reader thread for particular source types into
     /// the process thread, where values can be changed.
     RingBuffer<float> *ring;
-    
 
     /// this code is called inside the Jack process thread:
     /// it checks the ring buffer for any new setting, and passes
@@ -68,7 +48,7 @@ class Ctrl {
         if(got){
             std::vector<Value *>::iterator it;
             for(it=values.begin();it!=values.end();it++){
-                (*it)->setTarget(f);
+                (*it)->setTargetConvert(f);
             }
         }
     }
@@ -78,10 +58,8 @@ public:
     
     
     Ctrl(){
-        convert=true;
         hasSource=false;
         inmin=0;inmax=1;
-        outmin=0;outmax=1;
         ring = new RingBuffer<float>(20);
     }
     
@@ -91,14 +69,6 @@ public:
         
     Ctrl *setinrange(float mn,float mx){
         inmin=mn;inmax=mx;
-        return this;
-    }
-    Ctrl *setoutrange(float mn,float mx){
-        outmin=mn;outmax=mx;
-        return this;
-    }
-    Ctrl *noconvert(){
-        convert=false;
         return this;
     }
     
@@ -120,10 +90,7 @@ public:
     /// for each control. It will just fill the ring and then
     /// do nothing if ringPoll() isn't regularly called.
     void setval(float v){
-        if(convert){
-            v = (v-inmin)/(inmax-inmin);
-            v = v*(outmax-outmin)+outmin;
-        }
+        v = (v-inmin)/(inmax-inmin);
         ring->write(v);
     }
     

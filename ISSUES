@@ -1,20 +1,9 @@
-Need to specify input and output ports in effects. See config for 
-an example. 
-We now do that - we store the indices of the inputs and outputs,
-and count them too,
+Make sure syntax is up to date.
 
-Need to connect those ports before running, and make sure checkPortsConnected doesn't get in
-a tizzy about them (it won't, because it only check control ports)
+Allow master gain/pan, and allow amplification.
 
+Test chains.
 
-Crash on exit due to ladspa freeing stuff twice. I think I need to dlclose
-all the libraries one by one on exit.
+Show sends.
 
-Need to check the value being given to an effect param is within range.
-
-Be nice to have a way of mapping a known range (0-1) to the actual
-range of an effect param, e.g. 
-    gverb { "Roomsize (m)" default(ctrl) mapped
-would specify that ctrl produced 0-1, and the effect would map it
-itself. Chuffing hard because the value has nothing to do with the effect;
-the source could write the value via the ctrl and the effect won't know.
+Allow editing of send gain.

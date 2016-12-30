@@ -8,6 +8,7 @@
 #define __UTILS_H
 
 #include <iostream>
+#include <string>
 
 static const float PI = 3.1415927f;
 
@@ -56,13 +57,17 @@ inline void addbuffers(float *__restrict dest,
 
 class Monitor {
 private:
-    const char *name;
+    char *name;
     float cur;
     int iv;
 public:
     int maxiv;
-    Monitor(const char *n){name=n;cur=0;iv=0;maxiv=10;}
-    Monitor(const char *n,int i){name=n;cur=0;iv=0;maxiv=i;}
+    Monitor(std::string n){
+        name=strdup(n.c_str());
+        cur=0;iv=0;maxiv=10;}
+    Monitor(std::string n,int i){
+        name=strdup(n.c_str());
+        cur=0;iv=0;maxiv=i;}
     void in(float *v,int n){
         for(int i=0;i<n;i++){
             float q = fabs(*v++);
