@@ -10,6 +10,11 @@
 
 #include <math.h>
 #include <vector>
+#include <string>
+
+// optsset flags
+#define VALOPTS_MIN 1
+#define VALOPTS_MAX 2
 
 // these are the values used in the mixer: pan positions, gains etc.
 // and effect parameters. They can either be constants, or have a default
@@ -17,6 +22,7 @@
 
 class Value {
     friend class Ctrl;
+    
     
     /// the post-conversion default value
     float deflt;
@@ -40,14 +46,21 @@ public:
         smooth=0.5;
         db=false;
         mn=0;mx=1;
+        ctrl=NULL;
         values.push_back(this);
     }
     
+    /// which options (max, min etc.) have been used if it's hard to
+    /// tell by just examining the value - used for saving config.
+    int optsset;
     /// Range -  typically -60 to 0 for DB but doesn't have to be.
     float mn,mx;
     /// if true, value is expected to be -60 - 0 and is converted
     /// to a ratio 0-1 on setTarget(). 
     bool db;
+    /// what external controller, if any, is controlling me. Generally
+    /// used only for information (saving, monitoring).
+    class Ctrl *ctrl;
     
     
     /// set the default
@@ -121,6 +134,9 @@ public:
     
     /// update all values
     static void updateAll();
+    
+    /// convert to a string for saving
+    std::string toString();
     
     
     void nudge(float v){

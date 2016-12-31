@@ -127,6 +127,8 @@ Bounds PluginData::getBounds(string pname) {
     }
     if(getDefault(pname,&b.deflt))
         b.flags |= Bounds::Default;
+    if(h->HintDescriptor & LADSPA_HINT_LOGARITHMIC)
+        b.flags |= Bounds::Log;
     return b;
 }
 
@@ -149,8 +151,9 @@ static std::vector<PluginInstance *> instances;
 // instantiate this plugin and connect all control ports
 // to default values - this may be overwritten by actual
 // Values.
-PluginInstance::PluginInstance(PluginData *plugin) : portsConnected(128){
+PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128){
     p=plugin;
+    name = n;
     h=(*p->desc->instantiate)(p->desc,samprate);
     
     // connect up the ports to the defaults, and create output buffers
@@ -213,8 +216,8 @@ void PluginMgr::deleteInstances(){
     }
 }
 
-PluginInstance *PluginData::instantiate(){
-    return new PluginInstance(this);
+PluginInstance *PluginData::instantiate(string name){
+    return new PluginInstance(this,name);
 }
 
 

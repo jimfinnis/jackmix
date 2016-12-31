@@ -4,19 +4,18 @@
  *
  */
 
+#include <sstream>
 #include <string.h>
 #include "channel.h"
 #include "utils.h"
 #include "monitor.h"
+#include "save.h"
 
 // two sets of channels - input channels (which have a jack port)
 // and return channels (which mix in the output of ladspa effects)
 
 std::vector<Channel *> Channel::inputchans;
 std::vector<Channel *> Channel::returnchans;
-
-std::vector<std::string> Channel::chainNames;
-std::vector<ChainFeed> Channel::chains;
 
 volatile float Channel::peakl=0;
 volatile float Channel::peakr=0;
@@ -92,8 +91,8 @@ void Channel::mix(float *__restrict leftout,
                 nframes);
     } else {
         panstereo(tmpl,tmpr,left+offset,right+offset,
-                pan->get(),gain->get(),
-                nframes);
+                  pan->get(),gain->get(),
+                  nframes);
     }
     
     // and add to output buffers
@@ -122,4 +121,45 @@ void Channel::mix(float *__restrict leftout,
         }
     }
     
+}
+
+
+void Channel::save(ostream& out){
+    out << "  " << name << ": ";
+    if(!leftport && !rightport) { // must be an fx return
+        out << "return " << returnChainName << "\n    ";
+    }
+    out << "gain " << gain->toString() <<endl;
+    out << "    pan " << pan->toString();
+    
+    out << "\n    " << (mono?"mono":"stereo");
+    
+    for(unsigned int i=0;i<chains.size();i++){
+        out << "\n    send " << chainNames[i];
+        out << " gain " << chains[i].gain->toString();
+        out << (chains[i].postfade ? " postfade " : " prefade ");
+    }
+    
+    
+    // does not terminate with NL because of possibility of comma
+}
+
+void Channel::saveAll(ostream& out){
+    out << "chans {\n";
+    
+    vector<string> chanstrs;
+    for(unsigned int i=0;i<inputchans.size();i++){
+        stringstream ss;
+        inputchans[i]->save(ss);
+        chanstrs.push_back(ss.str());
+    }
+    for(unsigned int i=0;i<returnchans.size();i++){
+        stringstream ss;
+        returnchans[i]->save(ss);
+        chanstrs.push_back(ss.str());
+    }
+    
+    out << intercalate(chanstrs,",\n\n");
+              
+    out << "\n}\n";
 }

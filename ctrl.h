@@ -10,6 +10,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <ostream>
 #include "value.h"
 #include "ringbuffer.h"
 
@@ -56,8 +57,13 @@ class Ctrl {
 public:
     static Ctrl *createOrFind(std::string name);
     
+    /// source string copy, for information only. Set in setsource()
+    std::string sourceString;
+    /// name string copy, for information only. Set in setsource()
+    std::string nameString;
     
-    Ctrl(){
+    Ctrl(std::string name){
+        nameString = name;
         hasSource=false;
         inmin=0;inmax=1;
         ring = new RingBuffer<float>(20);
@@ -76,6 +82,7 @@ public:
     /// to work out what type of source, and calls code to add the
     /// ctrl to the source type's structures.
     Ctrl *setsource(std::string spec);
+    
     
     /// add a value to be managed by this control. DB controllers
     /// must control DB values, but we don't check that here - we
@@ -102,6 +109,10 @@ public:
     /// all the ctrl ring buffers, reading data. If there is
     /// any, it will be passed down to the values.
     static void pollAllCtrlRings();
+    
+    
+    static void saveAll(std::ostream &out);
+    void save(std::ostream &out);
         
 };   
     

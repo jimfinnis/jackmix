@@ -21,8 +21,13 @@ class PluginInstance {
     /// Will only check control ports!
     void checkPortsConnected();
 public:
+    
+    /// used for storing param->value associations for saving
+    unordered_map<string,class Value *> paramsMap;
+    
     struct PluginData *p;
     LADSPA_Handle h;
+    string name; // the unique name, not the effect's label.
     bool isActive; // true if activate() has been called
     
     // which ports are set correctly - we check before running
@@ -32,7 +37,7 @@ public:
     unordered_map<int,float*> opbufs;
     
     // will instantiate, set default controls etc.
-    PluginInstance(struct PluginData *plugin);
+    PluginInstance(struct PluginData *plugin,string name);
     // will deactivate if required/cleanup
     ~PluginInstance();
     
@@ -70,7 +75,7 @@ struct PluginData {
     
     
     
-    PluginInstance *instantiate();
+    PluginInstance *instantiate(string name);
 };
 
 

@@ -21,9 +21,12 @@
 #include "tokeniser.h"
 #include "tokens.h"
 #include "plugins.h"
-#include "parser.h"
+
 #include "monitor.h"
 #include "diamond.h"
+
+extern void parseConfig(const char *filename);
+
 
 using namespace std;
 
@@ -63,7 +66,10 @@ inline void subproc(float *left,float *right,int offset,int n){
  */
 
 static volatile bool parsedAndReady=false;
+
+// process thread -> main thread, monitoring data
 static RingBuffer<MonitorData> monring(20);
+// main thread -> process thread, commands
 RingBuffer<MonitorCommand> moncmdring(20);
 
 static void processMonitorCommand(MonitorCommand& c){
@@ -140,222 +146,6 @@ void shutdown(){
 }
 
 
-/*
- * 
- * Parser
- *
- */
-
-Tokeniser tok;
-
-// values are <number>['('<ctrl>')'], where <number> might be "default"
-// bounds: a Bounds structure containing an upper and/or lower bound,
-// which cannot be overriden with min/max (used in effects).
-Value *parseValue(Bounds b)
-{
-    Value *v = new Value();
-    float rmin=0,rmax=1;
-    float smooth = 0.5;
-    
-    for(;;){
-        switch(tok.getnext()){
-        case T_DB:
-            v->setdb();
-            // might get overwritten later..
-            rmin=-60;rmax=0;
-            break;
-        case T_MIN:
-            if(b.flags & Bounds::Lower)
-                throw _("'min' not permitted, min is fixed to %f",b.lower);
-            rmin = getnextfloat();
-            break;
-        case T_MAX:
-            if(b.flags & Bounds::Upper)
-                throw _("'max' not permitted, max is fixed to %f",b.upper);
-            rmax = getnextfloat();
-            break;
-        case T_SMOOTH:
-            smooth = tok.getnextfloat();
-            if(tok.iserror())expected("number");
-            break;
-        case T_DEFAULT:
-            if(!(b.flags & Bounds::Default))
-                throw _("no default is provided for this value");
-        case T_INT:
-        case T_FLOAT:
-            goto optsdone;
-        default:
-            expected("number or value option");
-        }
-    }
-    
-optsdone:
-    
-    if(b.flags & Bounds::Upper)
-        rmax = b.upper;
-    if(b.flags & Bounds::Lower)
-        rmin = b.lower;
-    
-    // use the default value passed in if we have one and it's allowed
-    float n;
-    if(tok.getcurrent() == T_DEFAULT){ // checked above
-        n = b.deflt;
-    } else if(tok.getcurrent() == T_FLOAT || tok.getcurrent()==T_INT)
-        n = tok.getfloat();
-    else
-        expected("number or 'default'");
-    
-    v->setdef(n);
-    v->setrange(rmin,rmax);
-    v->reset();
-    
-    if(tok.getnext()==T_OPREN){
-        // there is a controller for this value!
-        string name = getnextident();
-        Ctrl *c = Ctrl::createOrFind(name);
-        c->addval(v);
-        
-        if(tok.getnext()==T_SMOOTH){
-            n = tok.getnextfloat();
-            if(tok.iserror())expected("number");
-        } else tok.rewind();
-        
-        if(tok.getnext()!=T_CPREN)
-            expected("')'");
-    } else
-        tok.rewind();
-    v->setsmooth(smooth);
-    return v;
-}
-
-
-void parseChan(){
-    string name=getnextident();
-    
-    if(tok.getnext()!=T_COLON)
-        expected(":");
-    
-    printf("Parsing channel %s\n",name.c_str());
-    
-    string returnChainName;
-    bool isReturn=false;
-    if(tok.getnext()==T_RETURN){
-        isReturn=true;
-        returnChainName = getnextident();
-    }else tok.rewind();
-    
-    if(tok.getnext()!=T_GAIN)
-        expected("'gain'");
-    Value *gain = parseValue(Bounds());
-    
-    if(tok.getnext()!=T_PAN)
-        expected("'pan'");
-    Value *pan = parseValue(Bounds());
-    
-    bool mono=false;
-    switch(tok.getnext()){
-    case T_MONO:mono=true;
-    case T_STEREO:break;
-    default:tok.rewind();break;
-    }
-    
-    // can now create the channel. The Channel class maintains
-    // a static list of channels to which the ctor will add the
-    // new one.
-    Channel *ch = new Channel(name,mono?1:2,gain,pan,isReturn,
-                              returnChainName);
-    
-    // add info about chains, which will be resolved later.
-    while(tok.getnext()==T_SEND){
-        string chain = getnextident();
-        if(tok.getnext()!=T_GAIN)expected("'gain'");
-        Value *chaingain=parseValue(Bounds());
-        
-        int t = tok.getnext();
-        bool postfade=false;
-        if(t==T_POSTFADE)postfade=true;
-        else if(t!=T_PREFADE)tok.rewind();
-        
-        ch->addChainInfo(chain,chaingain,postfade);
-    }
-    tok.rewind(); // should leave us at a comma
-    
-    
-}
-
-void parseCtrl(){
-    string name=getnextident();
-    
-    if(tok.getnext()!=T_COLON)
-        expected("':' after ctrl name");
-    
-    if(tok.getnext()!=T_STRING)
-        expected("string (ctrl source spec)");
-    
-    string spec = string(tok.getstring());
-    
-    // creating the ctrl will set the default ranges
-    
-    Ctrl *c = Ctrl::createOrFind(name);
-    c->setsource(spec);
-    
-    // get the in-range, which converts to 0-1.
-    
-    if(tok.getnext()!=T_IN)expected("'in'");
-    
-    float inmin = tok.getnextfloat();
-    if(tok.iserror())expected("float (in input range)");
-    if(tok.getnext()!=T_COLON)expected("':' in input range");
-    float inmax = tok.getnextfloat();
-    if(tok.iserror())expected("float (in input range)");
-    c->setinrange(inmin,inmax);
-    
-}
-
-// parse plugin data: currently just shortnames for ports
-void parsePlugin(){
-    string name=getnextident();
-    PluginData *p = PluginMgr::getPlugin(name);
-    if(tok.getnext()!=T_OCURLY)expected("'{'");
-    
-    if(tok.getnext()==T_NAMES){
-        parseList([=]{
-                  string sn = getnextident();
-                  string ln = getnextidentorstring();
-                  p->addShortPortName(sn,ln);
-              });
-    } else tok.rewind();
-    
-    if(tok.getnext()!=T_CCURLY)expected("'}'");
-    
-}
-
-
-void parse(const char *s){
-    extern void parseStereoChain();
-    tok.reset(s);
-    for(;;){
-        switch(tok.getnext()){
-        case T_CHANS:
-            parseList(parseChan);
-            break;
-        case T_CTRL:
-            parseList(parseCtrl);
-            break;
-        case T_CHAIN:
-            parseList(parseStereoChain);
-            break;
-        case T_PLUGINS:
-            parseList(parsePlugin);
-            break;
-        case T_END:
-            return;
-        default:
-            expected("chans, ctrls, fx, plugins");
-        }
-    }
-}
-
 
 /*
  * Initialisation
@@ -404,33 +194,7 @@ void init(const char *file){
         throw _("cannot activate jack client");
     }
     
-    // parsing - reads entire file
-    try {
-        tok.init();
-        tok.setname("<in>");
-        tok.settokens(tokens);
-        tok.setcommentlinesequence("#");
-        //        tok.settrace(true);
-        FILE *a = fopen(file,"r");
-        if(a){
-            fseek(a,0L,SEEK_END);
-            int n = ftell(a);
-            fseek(a,0L,SEEK_SET);
-            char *fbuf = (char *)malloc(n+1);
-            fread(fbuf,sizeof(char),n,a);
-            fbuf[n]=0;
-            fclose(a);
-            parse(fbuf);
-            free(fbuf);
-            
-        } else 
-            throw _("cannot open config file");
-    } catch(string s){
-        stringstream ss;
-        ss << "at line " << tok.getline() << ": " << s;
-        throw ss.str();
-    }
-    
+    parseConfig(file);
     
     try {
         Ctrl::checkAllCtrlsForSource();
@@ -461,7 +225,7 @@ void loop(){
 int main(int argc,char *argv[]){
     
     try {
-        init("config");
+        init(argc>1 ? argv[1] : "config");
     } catch (const char *s){
         printf("Redundant error : %s\n",s);
         exit(1);

@@ -17,6 +17,7 @@
 #include "global.h"
 #include "parser.h"
 #include "fx.h"
+#include "save.h"
 
 using namespace std;
 
@@ -38,6 +39,8 @@ struct Chain : public ChainInterface {
     // map so we can find
     unordered_map<string,PluginInstance *> fxmap;
     
+    // names of things, kept for saving
+    string rightoutport,leftoutport,rightouteffect,leftouteffect;
     
     // input connection data to resolve later, indexed
     // by same order as fxlist, then within that, by input.
@@ -82,6 +85,16 @@ struct Chain : public ChainInterface {
         }
     }
     
+    // resolve a possibly short port name to a proper one
+    string getRealPortName(string effect,string port){
+        if(fxmap.find(effect)==fxmap.end())
+            throw _("cannot find effect '%s'",effect.c_str());
+        PluginInstance *inst = fxmap[effect];
+        int fpidx = inst->p->getPortIdx(port);
+        return string(inst->p->desc->PortNames[fpidx]);
+    }
+        
+    
     float *getPort(string effect,string port){
         if(fxmap.find(effect)==fxmap.end())
             throw _("cannot find source effect '%s'",effect.c_str());
@@ -102,6 +115,8 @@ struct Chain : public ChainInterface {
             (*p->p->desc->run)(p->h,nframes);
         }
     }
+    
+    virtual void save(ostream &out,string name);
 };
 
 
@@ -125,7 +140,7 @@ void parseEffect(Chain &c){
     PluginData *p = PluginMgr::getPlugin(label);
     
     // Create an actual instance of the plugin
-    PluginInstance *i = p->instantiate();
+    PluginInstance *i = p->instantiate(name);
     
     // get the input names, we'll resolve them later
     
@@ -151,7 +166,7 @@ void parseEffect(Chain &c){
               else {
                 ipd.fromeffect = outname;
                 if(tok.getnext()!=T_COLON)expected("':'");
-                ipd.fromport = getnextident();
+                ipd.fromport = getnextidentorstring();
                 ipd.channel = -1;
               }
               ipdp->push_back(ipd);
@@ -182,6 +197,7 @@ void parseEffect(Chain &c){
         printf("Param %s: %f\n",pname.c_str(),v->get());
         // and connect it
         i->connect(pname,v->getAddr());
+        i->paramsMap[pname]=v;
     });
     
     // ensure all ports are connected, and activate
@@ -201,19 +217,20 @@ void parseStereoChain(){
     
     if(tok.getnext()!=T_OCURLY)expected("'{'");
     
+    Chain& chain = chains.emplace(name,Chain()).first->second;
+    
+    
     // get the names of the output fx and ports (two, this is
     // a stereo chain
     if(tok.getnext()!=T_OUT)expected("'out'");
-    string leftouteffect = getnextident();
+    chain.leftouteffect = getnextident();
     if(tok.getnext()!=T_COLON)expected("':'");
-    string leftoutport = getnextident();
+    chain.leftoutport = getnextidentorstring();
     
     if(tok.getnext()!=T_COMMA)expected("','");
-    string rightouteffect = getnextident();
+    chain.rightouteffect = getnextident();
     if(tok.getnext()!=T_COLON)expected("':'");
-    string rightoutport = getnextident();
-    
-    Chain& chain = chains.emplace(name,Chain()).first->second;
+    chain.rightoutport = getnextidentorstring();
     
     if(tok.getnext()!=T_FX)expected("'fx'");
     
@@ -229,8 +246,21 @@ void parseStereoChain(){
     
     // and then get pointers to the output buffers
     
-    chain.leftoutbuf = chain.getPort(leftouteffect,leftoutport);
-    chain.rightoutbuf = chain.getPort(rightouteffect,rightoutport);
+    chain.leftoutbuf = chain.getPort(
+                                     chain.leftouteffect,
+                                     chain.leftoutport);
+    chain.rightoutbuf = chain.getPort(
+                                      chain.rightouteffect,
+                                      chain.rightoutport);
+    
+    // fixup the names - I know the way this is done is damn ugly, but
+    // it's because of how the system was written :)
+    chain.leftoutport = chain.getRealPortName(
+                                     chain.leftouteffect,
+                                     chain.leftoutport);
+    chain.rightoutport = chain.getRealPortName(
+                                      chain.rightouteffect,
+                                      chain.rightoutport);
 }
     
 ChainInterface *ChainInterface::find(std::string name){
@@ -254,3 +284,79 @@ void ChainInterface::runAll(unsigned int nframes){
     }
 }
 
+void Chain::save(ostream &out,string name){
+    out << "  " << name << " {\n";
+    
+    out << "    " << "out " << leftouteffect << ": \"" << leftoutport << "\"";
+    out << ", " << rightouteffect << ": \"" << rightoutport << "\"\n";
+    
+    out << "    fx {\n";
+    
+    vector<string> fxstrs;
+    for(unsigned int pidx=0;pidx<fxlist.size();pidx++){
+        stringstream fss;
+        PluginInstance *p = fxlist[pidx];
+        vector<InputParseData> *inp = parseData[pidx];
+        
+        fss << "      " << p->p->label << " " << p->name << "\n";
+        fss << "      in {\n";
+        vector<string> strs;
+        for(unsigned int iidx=0;iidx<inp->size();iidx++){
+            stringstream ss;
+            InputParseData& ipd = (*inp)[iidx];
+            ss << "        \"" << p->p->desc->PortNames[ipd.port] << "\"" ;
+            ss << " from ";
+            switch(ipd.channel){
+            case 0:
+                ss << "LEFT";break;
+            case 1:
+                ss << "RIGHT";break;
+            case -1:
+                ss << ipd.fromeffect << ":\"";
+                ss << getRealPortName(ipd.fromeffect,ipd.fromport);
+                ss << "\"";
+                break;
+            default:
+                ss << "???"; break;
+            }
+            strs.push_back(ss.str());
+        }
+        fss << intercalate(strs,",\n");
+        fss << "\n      }\n";
+        
+        fss << "      params {\n";
+        strs.clear();
+        unordered_map<string,Value *>::iterator it;
+        for(it=p->paramsMap.begin();it!=p->paramsMap.end();it++){
+            stringstream ss;
+            ss << "        \"" << getRealPortName(p->name,it->first) << "\" ";
+            ss << it->second->toString();
+            strs.push_back(ss.str());
+        }
+        fss << intercalate(strs,",\n");
+        fss << "\n      }";
+        
+        fxstrs.push_back(fss.str());
+    }
+    
+    out << intercalate(fxstrs,",\n");
+    out << "\n    }\n";
+    
+    out << "  }\n";
+}
+
+void ChainInterface::saveAll(ostream &out){
+    out << "chain {\n";
+    
+    unordered_map<string,Chain>::iterator it;
+    vector<string> strs;
+    for(it=chains.begin();it!=chains.end();it++){
+        stringstream ss;
+        it->second.save(ss,it->first);
+        strs.push_back(ss.str());
+    }
+    
+    out << intercalate(strs,"\n,");
+    
+    out << "}\n";
+}

@@ -22,6 +22,7 @@ MonitorUI::MonitorUI(){
     cbreak();
     nl();
     curs_set(0);
+    mode=EditGain;
     
     timeout(0); // nonblocking read
     

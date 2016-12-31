@@ -2,8 +2,13 @@ Make sure syntax is up to date.
 
 Allow master gain/pan, and allow amplification.
 
+Send all channels to all chains, but do no processing if gain<threshold,
+and modify syntax accordingly.
+
 Test chains.
 
-Show sends.
+Allow editing of send gains.
 
-Allow editing of send gain.
+Save.
+
+Allow chain edit?

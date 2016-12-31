@@ -47,6 +47,10 @@ struct ChainInterface {
     
     // run all effects in the order in which they were created.
     static void runAll(unsigned int n);
+    
+    
+    void save(std::ostream &out,std::string name);
+    static void saveAll(std::ostream &out);
 };
 
 

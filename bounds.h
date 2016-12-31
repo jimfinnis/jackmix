@@ -24,6 +24,7 @@ struct Bounds {
     static const int Both=3;
     
     static const int Default=4;
+    static const int Log=8;
 };
     
 

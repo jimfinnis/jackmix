@@ -10,6 +10,7 @@
 #include <jack/jack.h>
 #include <vector>
 #include <string>
+#include <fstream>
 #include "value.h"
 #include "global.h"
 #include "fx.h"
@@ -39,11 +40,11 @@ class Channel {
     static std::vector<Channel *> inputchans,returnchans;
     
     // after parsing, is traversed to build the actual chain pointers.
-    // Is then not used.
-    static std::vector<std::string> chainNames;
+    // Is then not used except for saving.
+    std::vector<std::string> chainNames;
     
     // pointers to actual chains, built from chainNames after parsing.
-    static std::vector<ChainFeed> chains;
+    std::vector<ChainFeed> chains;
     
     
     static jack_port_t *makePort(std::string pname){
@@ -165,7 +166,13 @@ public:
     static float getPeakR(){
         return peakr;
     }
-        
+    
+    // save a single channel 
+    void save(std::ostream& out);
+    
+    // save all channels
+    static void saveAll(std::ostream& out);
+    
 };
     
     
