@@ -19,10 +19,18 @@
 #include "parser.h"
 #include "save.h"
 
+void saveMaster(ostream& out){
+    extern Value *masterGain,*masterPan;
+    out << "master gain " << masterGain->toString() << " ";
+    out << "pan " << masterPan->toString() << endl;
+}
+
 
 void saveConfig(const char *fn){
     ofstream out;
     out.open(fn);
+    
+    saveMaster(out);
     
     Channel::saveAll(out);
     Ctrl::saveAll(out);

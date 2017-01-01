@@ -42,6 +42,10 @@ uint32_t samprate = 0;
 
 jack_client_t *client;
 
+// have to be ptrs so they get added to the list
+Value *masterPan,*masterGain;
+
+
 /*
  * Processing.
  */
@@ -52,13 +56,20 @@ inline void subproc(float *left,float *right,int offset,int n){
     // as required, mixing them into stereo if needed. Add the resulting
     // stereo buffers into the output buffers.
     
+    static float tmpl[BUFSIZE],tmpr[BUFSIZE];
+    
     ChainInterface::zeroAllInputs();
     // get input channels and mix into buffers (including send chain inputs)
-    Channel::mixInputChannels(left,right,offset,n);
+    Channel::mixInputChannels(tmpl,tmpr,offset,n);
     // process effects
     ChainInterface::runAll(n);
     // mix effects return channels into output
-    Channel::mixReturnChannels(left,right,offset,n);
+    Channel::mixReturnChannels(tmpl,tmpr,offset,n);
+    
+    // finally set the output
+    panstereo(left+offset,right+offset,tmpl,tmpr,
+              masterPan->get(),masterGain->get(),n);
+    
 }
 
 /*
@@ -80,9 +91,16 @@ static void processMonitorCommand(MonitorCommand& c){
     case ChangePan:
         c.chan->pan->nudge(c.v);
         break;
+    case ChangeMasterGain:
+        masterGain->nudge(c.v);
+        break;
+    case ChangeMasterPan:
+        masterPan->nudge(c.v);
+        break;
     }
 }
 
+static PeakMonitor masterMonL("masterL"),masterMonR("masterR");
 int process(jack_nframes_t nframes, void *arg){
     if(!parsedAndReady)return 0;
     
@@ -110,12 +128,18 @@ int process(jack_nframes_t nframes, void *arg){
     }
     subproc(outleft+i,outright+i,i,nframes-i);
     
+    masterMonL.in(outleft,nframes);
+    masterMonR.in(outright,nframes);
+    
+    
     // write to the monitoring ring buffer
     
     if(monring.getWriteSpace()>3){
         MonitorData m;
-        m.master.l = Channel::getPeakL();
-        m.master.r = Channel::getPeakR();
+        m.master.l = masterMonL.get();
+        m.master.r = masterMonR.get();
+        m.master.gain = masterGain->get();
+        m.master.pan = masterPan->get();
         Channel::writeMons(&m);
         monring.write(m);
     }
@@ -157,6 +181,11 @@ void init(const char *file){
         floatZeroes[i]=0.0f;
         floatOnes[i]=1.0f;
     }
+    
+    masterGain = (new Value())->
+          setdb()->setrange(-60,0)->setdef(0)->reset();
+    masterPan = (new Value())->
+          setdef(0)->setrange(-0.5,0.5)->reset();
     
     initDiamond();
     
@@ -214,8 +243,6 @@ void loop(){
         while(monring.getReadSpace())
             monring.read(mdat);
         pollDiamond();
-        //        printf("%f - %f\n",Channel::getPeakL(),Channel::getPeakR());
-        Channel::resetPeak();
         
         mon.display(&mdat);
         mon.handleInput();
@@ -234,7 +261,6 @@ int main(int argc,char *argv[]){
         exit(1);
     }
     
-    Channel::resetPeak();
     parsedAndReady=true;
     
     try {

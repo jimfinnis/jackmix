@@ -1,5 +1,5 @@
 chans {
-    chan1 : gain smooth 0.9 0.7(gain0) 
+    chan1 : gain smooth 0.9 db -10(gain0) 
             pan 0.2(pan0)
             send testchain1 gain db 1,
             
@@ -40,7 +40,7 @@ chain {
 
         # where the two outputs are: ports within effects
 
-        out gverb1:outl, gverb1:outr
+        out gverb1:outl, gverb2:outr
 
         # the list of effects
 
@@ -64,7 +64,7 @@ chain {
             },
             
             gverb gverb2
-            in { input from gverb1:outl }
+            in { input from RIGHT }
             params { roomsize default }
         }
     }

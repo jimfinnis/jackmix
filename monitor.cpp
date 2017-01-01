@@ -9,6 +9,9 @@
 #include "monitor.h"
 #include "ringbuffer.h"
 #include "exception.h"
+#include "save.h"
+
+#include "help.h"
 
 #define PAIR_RED 1
 #define PAIR_YELLOW 2
@@ -22,7 +25,8 @@ MonitorUI::MonitorUI(){
     cbreak();
     nl();
     curs_set(0);
-    mode=EditGain;
+    state=Main;
+    prevState=Main;
     
     timeout(0); // nonblocking read
     
@@ -43,9 +47,9 @@ static MonitorData *gentestdat(){
     static MonitorData *m=NULL;
     if(!m){
         m=new MonitorData;
-//        m->chans.push_back(ChanMonData("foo",1,1,1,1));
-//        m->chans.push_back(ChanMonData("bar",0.5,1,1,0.5));
-//        m->chans.push_back(ChanMonData("baz",1,0.5,0.75,1));
+        //        m->chans.push_back(ChanMonData("foo",1,1,1,1));
+        //        m->chans.push_back(ChanMonData("bar",0.5,1,1,0.5));
+        //        m->chans.push_back(ChanMonData("baz",1,0.5,0.75,1));
     }
     return m;
 }
@@ -64,13 +68,47 @@ void MonitorUIBasic::display(MonitorData *d){
 }
 
 
+static void showHelp(const char ***h){
+    attrset(COLOR_PAIR(0));
+    for(int x=0;h[x];x++){
+        for(int y=0;h[x][y];y++){
+            move(y,x*30);
+            const char *s = h[x][y];
+            while(*s){
+                switch(*s){
+                case '[':attron(A_BOLD);break;
+                case ']':attroff(A_BOLD);break;
+                case '{':attron(COLOR_PAIR(PAIR_HILIGHT));break;
+                case '}':attroff(COLOR_PAIR(PAIR_HILIGHT));break;
+                default:
+                    addch(*s);
+                    break;
+                }
+                s++;
+            }
+        }
+    }
+    refresh();
+    
+}
+
+
 static MonitorData lastDisplayed;
 
 void MonitorUI::display(MonitorData *d){
     getmaxyx(stdscr,h,w);
     if(!d)d=gentestdat();
     erase();
-    displayChans(d);
+    
+    switch(state){
+    case Help:
+        showHelp(helpScreen);
+        break;
+    default:
+        displayChans(d);
+        break;
+    }
+    
     
     lastDisplayed=*d;
     
@@ -90,13 +128,15 @@ void MonitorUI::displayChans(MonitorData *d){
     
     // there is a current col, which must be on the screen.
     
-    int firstcol = 0; // first col on scren
+    int firstcol = 0; // first col on screen
+    
+    // curchan may be -1, in which case we are editing master values.
     
     if(curchan >= firstcol+numcols){
         firstcol = curchan-numcols/2;
     }
     
-    displayChan(0,&d->master,false);
+    displayChan(0,&d->master,curchan==-1);
     
     for(int i=0;i<numcols;i++){
         ChanMonData *c;
@@ -132,21 +172,15 @@ void MonitorUI::displayChan(int i,ChanMonData* c,bool cur){
         name="xxxx";
     }
     mvprintw(0,x,"%s",name);
+    
+    // inputs to pan/gain bars are range 0-1.
     drawVertBar(2,x,h-3,1,l,Gain,false);
     drawVertBar(2,x+2,h-3,1,r,Gain,false);
-    drawVertBar(2,x+4,h-3,1,gain,Green,cur && mode==EditGain);
-    drawVertBar(2,x+6,h-3,1,pan,Pan,cur && mode==EditPan);
+    drawVertBar(2,x+4,h-3,1,gain,Green,cur);
+    drawVertBar(2,x+6,h-3,1,pan,Pan,cur);
     
-    if(cur){
-        const char *modestr;
-        switch(mode){
-        case EditGain:modestr="GAIN (NYI)";break;
-        case EditPan:modestr="PAN (NYI)";break;
-        default:modestr="???";
-        }
-        attrset(COLOR_PAIR(0)|A_BOLD);
-        mvaddstr(h-1,x,modestr);
-    }
+    attrset(COLOR_PAIR(0)|A_BOLD);
+    mvaddstr(h-1,0,"Status: OK");
 }
 
 
@@ -201,47 +235,60 @@ void MonitorUI::command(MonitorCommandType cmd,float v,Channel *c){
     }
 }
 
-void MonitorUI::commandUpDown(float v){
-    Channel *c = lastDisplayed.chans[curchan].chan;
-    switch(mode){
-    case EditGain:
+void MonitorUI::commandGainNudge(float v){
+    if(curchan>=0){
+        Channel *c = lastDisplayed.chans[curchan].chan;
         if(c->gain->db)v*=0.1f;
         command(MonitorCommandType::ChangeGain,v,c);
-        break;
-    case EditPan:
-        if(c->gain->db)v*=0.1f;
-        command(MonitorCommandType::ChangePan,v,c);
-        break;
-    default:
-        break;
+    } else {
+        v*=0.1f; // master gain is always log
+        command(MonitorCommandType::ChangeMasterGain,v,NULL);
     }
+              
 }    
 
+void MonitorUI::commandPanNudge(float v){
+    if(curchan>=0){
+        Channel *c = lastDisplayed.chans[curchan].chan;
+        command(MonitorCommandType::ChangePan,v,c);
+    } else 
+        command(MonitorCommandType::ChangeMasterPan,v,NULL);
+        
+}
+
 void MonitorUI::handleInput(){
-    switch(getch()){
-    case KEY_RIGHT:
-        curchan++;
+    switch(state){
+    case Help:
+        if(getch()!=ERR)
+            gotoPrevState();
         break;
-    case KEY_LEFT:
-        if(--curchan<0)
-            curchan=0;
-        break;
-    case KEY_UP:
-        commandUpDown(1);break;
-    case KEY_DOWN:
-        commandUpDown(-1);break;
-    case 9: // tab
-        switch(mode){
-        case EditGain:
-            mode = EditPan;
+    case Main:
+        switch(getch()){
+        case 'h':case 'H':
+            helpScreen=MainHelp;
+            gotoState(Help);
             break;
-        case EditPan:
-            mode = EditGain;
+        case 'x':
+            curchan++;
             break;
+        case 'z':
+            if(--curchan<-1)
+                curchan=0;
+            break;
+        case KEY_UP:
+            commandGainNudge(1);break;
+        case KEY_DOWN:
+            commandGainNudge(-1);break;
+        case KEY_LEFT:
+            commandPanNudge(-1);break;
+        case KEY_RIGHT:
+            commandPanNudge(1);break;
+        case 's':case 'S':
+            saveConfig("save");break;
+        case 'q':case 'Q':
+            throw _("Quit");
+        default:break;
         }
-        break;
-    case 'q':case 'Q':
-        throw _("Quit");
     default:break;
     }
 }

@@ -122,9 +122,10 @@ public:
             
     
     /// reset value and target to default
-    void reset(){
+    Value* reset(){
         value = db ? powf(10.0,deflt*0.1f) : deflt;
         target=value;
+        return this;
     }
     
     /// perform periodic update

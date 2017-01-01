@@ -17,9 +17,6 @@
 std::vector<Channel *> Channel::inputchans;
 std::vector<Channel *> Channel::returnchans;
 
-volatile float Channel::peakl=0;
-volatile float Channel::peakr=0;
-
 void Channel::mixInputChannels(float *__restrict leftout,
                                float *__restrict rightout,
                                int offset,int nframes){
@@ -31,14 +28,6 @@ void Channel::mixInputChannels(float *__restrict leftout,
     for(it=inputchans.begin();it!=inputchans.end();it++){
         (*it)->mix(leftout,rightout,offset,nframes);
     }
-    
-    for(int i=0;i<nframes;i++){
-        float v = fabs(leftout[i]);
-        if(v>peakl)peakl=v;
-        v = fabs(rightout[i]);
-        if(v>peakr)peakr=v;
-    }
-    
 }
 
 void Channel::mixReturnChannels(float *__restrict leftout,
@@ -47,13 +36,6 @@ void Channel::mixReturnChannels(float *__restrict leftout,
     std::vector<Channel *>::iterator it;
     for(it=returnchans.begin();it!=returnchans.end();it++){
         (*it)->mix(leftout,rightout,offset,nframes);
-    }
-    
-    for(int i=0;i<nframes;i++){
-        float v = fabs(leftout[i]);
-        if(v>peakl)peakl=v;
-        v = fabs(rightout[i]);
-        if(v>peakr)peakr=v;
     }
 }
 

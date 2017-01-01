@@ -18,10 +18,13 @@ Tokeniser tok;
 
 // values are <number>['('<ctrl>')'], where <number> might be "default"
 // bounds: a Bounds structure containing an upper and/or lower bound,
-// which cannot be overriden with min/max (used in effects).
-Value *parseValue(Bounds b)
+// which cannot be overriden with min/max (used in effects). Can parse
+// into existing or new value.
+Value *parseValue(Bounds b,Value *v=NULL)
 {
-    Value *v = new Value();
+    if(!v)
+        v = new Value();
+    
     float rmin=0,rmax=1;
     float smooth = 0.5;
     
@@ -203,6 +206,14 @@ void parsePlugin(){
     
 }
 
+void parseMaster(){
+    extern Value *masterGain,*masterPan;
+    if(tok.getnext()!=T_GAIN)expected("'gain'");
+    parseValue(Bounds(),masterGain);
+    if(tok.getnext()!=T_PAN)expected("'pan'");
+    parseValue(Bounds(),masterPan);
+}
+
 /// parses the config file as a single string
 void parseConfigData(const char *s){
     extern void parseStereoChain();
@@ -220,6 +231,9 @@ void parseConfigData(const char *s){
             break;
         case T_PLUGINS:
             parseList(parsePlugin);
+            break;
+        case T_MASTER:
+            parseMaster();
             break;
         case T_END:
             return;

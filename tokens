@@ -36,6 +36,7 @@ noconvert: T_NOCONVERT
 smooth: T_SMOOTH
 default: T_DEFAULT
 fx: T_FX
+master:T_MASTER
 return: T_RETURN
 prefade: T_PREFADE
 postfade: T_POSTFADE

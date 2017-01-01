@@ -46,7 +46,8 @@ struct MonitorData {
 
 // commands sent from main thread monitor code to processing thread
 
-enum MonitorCommandType {ChangeGain,ChangePan};
+enum MonitorCommandType {ChangeGain,ChangePan,ChangeMasterGain,
+          ChangeMasterPan};
 
 struct MonitorCommand {
     MonitorCommand(){}
@@ -86,11 +87,12 @@ class MonitorUI {
     int w,h; // display size
     int curchan=0;
     
-    enum UIMode {
-        EditGain,EditPan
+    enum UIState {
+        Main,Help
           };
     
-    UIMode mode;
+    UIState state;
+    UIState prevState;
 public:
     MonitorUI();
     ~MonitorUI();
@@ -99,6 +101,16 @@ public:
     void handleInput();
 
 private:
+    const char ***helpScreen;
+    void gotoState(UIState s){
+        prevState = state;
+        state = s;
+    }
+    void gotoPrevState(){
+        state = prevState;
+    }
+        
+    
     enum BarMode { Gain,Green,Pan };
     
     void displayChans(MonitorData *d);
@@ -107,7 +119,8 @@ private:
                      float v,BarMode mode,bool bold);
 
 
-    void commandUpDown(float v);
+    void commandGainNudge(float v);
+    void commandPanNudge(float v);
     void command(MonitorCommandType cmd,float v,Channel *c);
 };
 

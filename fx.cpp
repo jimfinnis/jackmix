@@ -21,7 +21,7 @@
 
 using namespace std;
 
-Value *parseValue(Bounds b);
+Value *parseValue(Bounds b,Value *v=NULL);
 
 // stores temporary data about an input connection for an effect
 struct InputParseData {

@@ -55,23 +55,26 @@ inline void addbuffers(float *__restrict dest,
     }
 }
 
-class Monitor {
+class PeakMonitor {
 private:
     char *name;
     float cur;
     int iv;
 public:
     int maxiv;
-    Monitor(std::string n){
+    PeakMonitor(std::string n){
         name=strdup(n.c_str());
         cur=0;iv=0;maxiv=10;}
-    Monitor(std::string n,int i){
+    PeakMonitor(std::string n,int i){
         name=strdup(n.c_str());
         cur=0;iv=0;maxiv=i;}
     void in(float *v,int n){
         for(int i=0;i<n;i++){
             float q = fabs(*v++);
-            cur = q*0.01f + cur*0.99f;
+            if(q>cur)
+                cur = q;
+            else
+                cur = q*0.01f + cur*0.99f;
         }
     }
     float get(){return cur;}

@@ -1,9 +1,8 @@
 Make sure syntax is up to date.
 
-Allow master gain/pan, and allow amplification.
+Ensure gverb stereo works.
 
-Send all channels to all chains, but do no processing if gain<threshold,
-and modify syntax accordingly.
+Allow master gain/pan, and allow amplification.
 
 Test chains.
 

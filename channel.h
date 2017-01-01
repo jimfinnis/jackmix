@@ -67,10 +67,6 @@ class Channel {
             right = (float *)jack_port_get_buffer(rightport,nframes);
     }
         
-    // for peak metering
-    static volatile float peakl,peakr;
-    
-    
     // if mono, only leftport is used - both will be null if this
     // is a return.
     jack_port_t *leftport,*rightport;
@@ -92,7 +88,7 @@ class Channel {
         }
     }
     
-    Monitor monl,monr;
+    PeakMonitor monl,monr;
     
 public:
     Value *pan,*gain;
@@ -155,16 +151,6 @@ public:
         for(it=inputchans.begin();it!=inputchans.end();it++){
             (*it)->cachebufs(nframes);
         }
-    }
-    static void resetPeak(){
-        peakl=peakr=0;
-    }
-    
-    static float getPeakL(){
-        return peakl;
-    }
-    static float getPeakR(){
-        return peakr;
     }
     
     // save a single channel 
