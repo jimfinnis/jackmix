@@ -4,6 +4,7 @@
  *
  */
 
+#include <sstream>
 #include <ncurses.h>
 
 #include "ringbuffer.h"
@@ -11,6 +12,7 @@
 #include "save.h"
 #include "process.h"
 #include "monitor.h"
+#include "version.h"
 
 #include "help.h"
 
@@ -48,7 +50,10 @@ MonitorUI::MonitorUI(){
     curs_set(0);
     state=Main;
     prevState=Main;
-    setStatus("Ready",1);
+    stringstream ss;
+    ss << "Jackmix Ready [" << VERSION << "]";
+    
+    setStatus(ss.str(),10);
     
     timeout(0); // nonblocking read
     
@@ -275,13 +280,16 @@ void MonitorUI::commandPanNudge(float v){
 void MonitorUI::handleInput(){
     switch(state){
     case Help:
-        if(getch()!=ERR)
+        if(getch()!=ERR){
+            setStatus("",0);
             gotoPrevState();
+        }
         break;
     case Main:
         switch(getch()){
         case 'h':case 'H':
             helpScreen=MainHelp;
+            setStatus("Press any key to return",10);
             gotoState(Help);
             break;
         case 'x':
