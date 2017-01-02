@@ -50,13 +50,15 @@ MonitorUI::MonitorUI(){
     curs_set(0);
     state=Main;
     prevState=Main;
-    stringstream ss;
-    ss << "Jackmix Ready [" << VERSION << "]";
-    
-    setStatus(ss.str(),10);
-    
     timeout(0); // nonblocking read
     
+    
+    // display initial status line
+    stringstream ss;
+    ss << "Jackmix Ready [" << VERSION << "]";
+    setStatus(ss.str(),10);
+    
+    // set colour pairs
     start_color();
     init_pair(PAIR_HILIGHT,COLOR_YELLOW,COLOR_BLACK);
     init_pair(PAIR_GREEN,COLOR_GREEN,COLOR_GREEN);
