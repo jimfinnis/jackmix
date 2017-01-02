@@ -107,7 +107,7 @@ class MonitorUI {
     void displayStatus();
     
     enum UIState {
-        Main,Help,ChanZoom
+        Main,Help,ChanZoom,ChainList
           };
     
     UIState state;
@@ -139,6 +139,8 @@ private:
     
     void displayChanZoom(MonitorData *c);
     
+    void displayChainList();
+    
     // v is 0-1 linear unless rv (range value) is present. We treat v and rv separately
     // so that we can store the value to show, passing it from process to main thread in
     // a ring buffer.
@@ -146,7 +148,9 @@ private:
                      float v,Value *rv,BarMode mode,bool bold);
     void drawHorzBar(int y, int x, int h, int w, 
                      float v,Value *rv,BarMode mode,bool bold);
-
+    
+    // display page title
+    void title(const char *s);
     
     // nudge the gain of the currently edited send on the current channel
     // in ChanZoom state.

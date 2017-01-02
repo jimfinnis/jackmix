@@ -145,7 +145,7 @@ static MonitorData lastDisplayed;
 #define COLWIDTH 10
 
 void MonitorUI::displayMain(MonitorData *d){
-    
+    title("MAIN VIEW");
     // how many channels (cols) can we do, not including MASTER?
     // There's a bit of space over
     // to the right we need to leave free.
@@ -221,6 +221,7 @@ void MonitorUI::displayChan(int i,ChanMonData* c,bool cur){
 
 
 void MonitorUI::displayChanZoom(MonitorData *d){
+    title("CHANNEL EDIT");
     attrset(COLOR_PAIR(PAIR_HILIGHT)|A_BOLD);
     if(curchan<0 || curchan>=d->numchans)
         mvprintw(0,0,"Invalid channel");
@@ -275,8 +276,22 @@ void MonitorUI::displayChanZoom(MonitorData *d){
     refresh();
 }
 
+void MonitorUI::displayChainList(){
+    title("CHAIN LIST");
+}
 
 
+
+/*
+ * 
+ * Drawing utils
+ * 
+ */
+
+void MonitorUI::title(const char *s){
+    attrset(COLOR_PAIR(0)|A_BOLD);
+    mvaddstr(0,w-strlen(s),s);
+}
 
 void MonitorUI::drawVertBar(int y, int x, int h, int w, 
                             float v,Value *rv,BarMode mode,bool bold){
@@ -396,6 +411,16 @@ void MonitorUI::drawHorzBar(int y, int x, int h, int w,
     }
 }
 
+
+
+
+/*
+ * 
+ * Commands to process thread
+ * 
+ */
+
+
 void MonitorUI::command(MonitorCommandType cmd,float v,Channel *c,int i){
     Process::writeCmd(cmd,v,c,i);
 }
@@ -446,6 +471,7 @@ void MonitorUI::display(MonitorData *d){
     
     switch(state){
     case Help:
+        title("HELP");
         showHelp(helpScreen);
         break;
     case Main:
@@ -453,6 +479,9 @@ void MonitorUI::display(MonitorData *d){
         break;
     case ChanZoom:
         displayChanZoom(d);
+        break;
+    case ChainList:
+        displayChainList();
         break;
     default:
         mvaddstr(0,0,"????");
@@ -507,8 +536,19 @@ void MonitorUI::handleInput(){
         default:break;
         }
         break;
+    case ChainList:
+        switch(getch()){
+        case 10:
+            gotoPrevState();
+            break;
+        default:break;
+        }
+        break;
     case Main:
         switch(getch()){
+        case 'c':case 'C':
+            gotoState(ChainList);
+            break;
         case 'm':case 'M':
             simpleChannelCommand(MonitorCommandType::ChannelMute);
             break;
