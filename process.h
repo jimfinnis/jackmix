@@ -44,7 +44,7 @@ struct Process {
     
     /// add a command to be communicated to the process thread
     static void writeCmd(MonitorCommandType cmd,
-                         float v,class Channel *c);
+                         float v,class Channel *c,int i);
     
     
     // handle a command coming in on the command ring buffer

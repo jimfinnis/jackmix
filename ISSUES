@@ -2,11 +2,11 @@ Make sure syntax is up to date.
 
 Ensure gverb stereo works.
 
-Allow master gain/pan, and allow amplification.
+allow amplification (gain>1 in master?)
+
+Mute/solo
 
 Test chains.
-
-Allow editing of send gains.
 
 Save.
 

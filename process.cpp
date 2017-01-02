@@ -42,7 +42,7 @@ void Process::init(){
     masterGain = (new Value())->
           setdb()->setrange(-60,0)->setdef(0)->reset();
     masterPan = (new Value())->
-          setdef(0)->setrange(-0.5,0.5)->reset();
+          setdef(0)->setrange(0,1)->setdef(0.5)->reset();
 }    
 
 void Process::initJack(){
@@ -92,9 +92,9 @@ bool Process::pollMonRing(MonitorData *p){
 }
 
 void Process::writeCmd(MonitorCommandType cmd,
-                       float v,class Channel *c){
+                       float v,class Channel *c,int i){
     if(moncmdring.canWrite()){
-        moncmdring.write(MonitorCommand(cmd,v,c));
+        moncmdring.write(MonitorCommand(cmd,v,c,i));
     }
 }    
 
@@ -116,6 +116,15 @@ void Process::processMonitorCommand(MonitorCommand& c){
         break;
     case ChangeMasterPan:
         masterPan->nudge(c.v);
+        break;
+    case ChangeSendGain:
+        c.chan->chains[c.arg0].gain->nudge(c.v);
+        break;
+    case ChannelMute:
+        c.chan->toggleMute();
+        break;
+    case ChannelSolo:
+        c.chan->toggleSolo();
         break;
     }
 }

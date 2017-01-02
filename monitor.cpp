@@ -20,6 +20,9 @@
 #define PAIR_YELLOW 2
 #define PAIR_GREEN 3
 #define PAIR_HILIGHT 4
+#define PAIR_DARK 5
+#define PAIR_REDTEXT 6
+#define PAIR_BLUETEXT 7
 
 void MonitorUI::setStatus(string s,double t){
     statusTimeToEnd=Time()+Time(t);
@@ -60,10 +63,16 @@ MonitorUI::MonitorUI(){
     
     // set colour pairs
     start_color();
+    if(can_change_color())
+        setStatus("Color!",10);
+    
     init_pair(PAIR_HILIGHT,COLOR_YELLOW,COLOR_BLACK);
     init_pair(PAIR_GREEN,COLOR_GREEN,COLOR_GREEN);
     init_pair(PAIR_YELLOW,COLOR_YELLOW,COLOR_YELLOW);
     init_pair(PAIR_RED,COLOR_RED,COLOR_RED);
+    init_pair(PAIR_DARK,COLOR_BLUE,COLOR_BLUE);
+    init_pair(PAIR_REDTEXT,COLOR_RED,COLOR_BLACK);
+    init_pair(PAIR_BLUETEXT,COLOR_BLUE,COLOR_BLACK);
     
 }
 
@@ -97,11 +106,20 @@ void MonitorUIBasic::display(MonitorData *d){
 }
 
 
+/*
+ * 
+ * 
+ * States
+ * 
+ * 
+ * 
+ */
+
 static void showHelp(const char ***h){
     attrset(COLOR_PAIR(0));
     for(int x=0;h[x];x++){
         for(int y=0;h[x][y];y++){
-            move(y,x*30);
+            move(y,x*40);
             const char *s = h[x][y];
             while(*s){
                 switch(*s){
@@ -122,31 +140,11 @@ static void showHelp(const char ***h){
 
 static MonitorData lastDisplayed;
 
-void MonitorUI::display(MonitorData *d){
-    getmaxyx(stdscr,h,w);
-    if(!d)d=gentestdat();
-    erase();
-    
-    switch(state){
-    case Help:
-        showHelp(helpScreen);
-        break;
-    default:
-        displayChans(d);
-        break;
-    }
-    
-    displayStatus();
-    
-    lastDisplayed=*d;
-    
-    refresh();
-}
 
 #define RIGHTWIDTH 20
 #define COLWIDTH 10
 
-void MonitorUI::displayChans(MonitorData *d){
+void MonitorUI::displayMain(MonitorData *d){
     
     // how many channels (cols) can we do, not including MASTER?
     // There's a bit of space over
@@ -178,41 +176,127 @@ void MonitorUI::displayChans(MonitorData *d){
 }
 
 void MonitorUI::displayChan(int i,ChanMonData* c,bool cur){
-    int w,h;
-    getmaxyx(stdscr,h,w);
     int x = i*COLWIDTH;
-    
-    if(cur)
-        attrset(COLOR_PAIR(PAIR_HILIGHT)|A_BOLD);
-    else
-        attrset(COLOR_PAIR(0));
     
     float l,r,gain,pan;
     const char *name;
+    
     if(c){
         l=c->l;
         r=c->r;
         gain=c->gain;
         pan=c->pan;
         name = c->name;
+        if(c->chan){
+            if(c->chan->isMute()){
+                attrset(COLOR_PAIR(PAIR_BLUETEXT)|A_BOLD);
+                mvaddstr(1,x,"MUTE");
+            }
+            if(c->chan->isSolo()){
+                attrset(COLOR_PAIR(PAIR_REDTEXT)|A_BOLD);
+                mvaddstr(1,x+5,"SOLO");
+            }
+        }
     } else {
         l=r=gain=pan=0;
         name="xxxx";
     }
+    
+    if(cur)
+        attrset(COLOR_PAIR(PAIR_HILIGHT)|A_BOLD);
+    else
+        attrset(COLOR_PAIR(0));
+    
     mvprintw(0,x,"%s",name);
     
-    // inputs to pan/gain bars are range 0-1.
-    drawVertBar(2,x,h-3,1,l,Gain,false);
-    drawVertBar(2,x+2,h-3,1,r,Gain,false);
-    drawVertBar(2,x+4,h-3,1,gain,Green,cur);
-    drawVertBar(2,x+6,h-3,1,pan,Pan,cur);
     
-    attrset(COLOR_PAIR(0)|A_BOLD);
+    // inputs to pan/gain bars are range 0-1 unless a value is given
+    drawVertBar(2,x,h-3,1,l,NULL,Gain,false);
+    drawVertBar(2,x+2,h-3,1,r,NULL,Gain,false);
+    drawVertBar(2,x+4,h-3,1,gain,NULL,Green,cur);
+    drawVertBar(2,x+6,h-3,1,pan,NULL,Pan,cur);
+    
+    attrset(COLOR_PAIR(0));
 }
 
 
+void MonitorUI::displayChanZoom(MonitorData *d){
+    attrset(COLOR_PAIR(PAIR_HILIGHT)|A_BOLD);
+    if(curchan<0 || curchan>=d->numchans)
+        mvprintw(0,0,"Invalid channel");
+    else {
+        ChanMonData *c = d->chans+curchan;
+        Channel *ch = c->chan;
+        mvprintw(0,0,"Channel %s",c->name);
+        
+        int numsends = (int)ch->chains.size();
+        // it's ugly checking this here, but it's a safeish
+        // and convenient place
+        if(curparam-2 >= numsends)
+            curparam = 1+numsends;
+        
+        if(ch->isMute()){
+            attrset(COLOR_PAIR(PAIR_BLUETEXT)|A_BOLD);
+            mvaddstr(0,20,"MUTE");
+        }
+        if(ch->isSolo()){
+            attrset(COLOR_PAIR(PAIR_REDTEXT)|A_BOLD);
+            mvaddstr(0,25,"SOLO");
+        }
+        
+        attrset(COLOR_PAIR(0));
+        mvaddstr(3,0,"Left");
+        mvaddstr(5,0,"Right");
+        mvaddstr(8,0,"Gain");
+        mvaddstr(10,0,"Pan");
+        
+        int ww = w-20;
+        drawHorzBar(3,10,1,ww,c->l,NULL,Gain,false);
+        drawHorzBar(5,10,1,ww,c->r,NULL,Gain,false);
+        drawHorzBar(8,10,1,ww,c->gain,NULL,Green,curparam==0);
+        drawHorzBar(10,10,1,ww,c->pan,NULL,Pan,curparam==1);
+        
+        for(unsigned int i=0;i<ch->chains.size();i++){
+            int cc = curparam-2;
+            int y = i*3+15;
+            int ww = w-20;
+            ChainFeed& f = ch->chains[i];
+            attrset(COLOR_PAIR(0));
+            mvaddstr(y,0,ch->chainNames[i].c_str());
+            
+            mvaddstr(y,20,f.postfade?"POSTFADE":"PREFADE");
+            
+            
+            drawHorzBar(y+1,10,1,ww,f.gain->get(),f.gain,Green,cc==(int)i);
+        }
+    }
+    
+    attrset(COLOR_PAIR(0));
+    refresh();
+}
+
+
+
+
 void MonitorUI::drawVertBar(int y, int x, int h, int w, 
-                            float v,BarMode mode,bool bold){
+                            float v,Value *rv,BarMode mode,bool bold){
+    float mn,mx;
+    if(rv){
+        mn = rv->mn; mx = rv->mx;
+        // we only do decibel conversion of the range
+        if(rv->db){
+            mn = powf(10.0f,mn*0.1f);
+            mx = powf(10.0f,mx*0.1f);
+        }
+    } else {
+        mn=0;mx=1;
+    }
+    
+        
+    
+    // we DON'T do decibel conversion.
+    v -= mn;
+    v /= (mx-mn);
     
     int val = v*h;
     int yellow = h*0.7f;
@@ -225,7 +309,7 @@ void MonitorUI::drawVertBar(int y, int x, int h, int w,
         switch(mode){
         case Gain:
             if(i>val){
-                col=0;rev=false;}
+                col=PAIR_DARK;rev=false;}
             else if(i>red)
                 col=PAIR_RED;
             else if(i>yellow)
@@ -235,15 +319,15 @@ void MonitorUI::drawVertBar(int y, int x, int h, int w,
             break;
         case Pan:
             if(val<half){
-                if(i>half || i<val){col=0;rev=false;}
+                if(i>half || i<val){col=PAIR_DARK;rev=false;}
                 else col=PAIR_GREEN;
             } else {
-                if(i<half || i>val){col=0;rev=false;}
+                if(i<half || i>val){col=PAIR_DARK;rev=false;}
                 else col=PAIR_GREEN;
             }
             break;
         case Green:
-            if(i>val){col=0;rev=false;}
+            if(i>val){col=PAIR_DARK;rev=false;}
             else col = PAIR_GREEN;
         }
         long attr = bold ? A_BOLD: 0;
@@ -254,29 +338,132 @@ void MonitorUI::drawVertBar(int y, int x, int h, int w,
     }
 }
 
-void MonitorUI::command(MonitorCommandType cmd,float v,Channel *c){
-    Process::writeCmd(cmd,v,c);
+void MonitorUI::drawHorzBar(int y, int x, int h, int w, 
+                            float v,Value *rv,BarMode mode,bool bold){
+    float mn,mx;
+    if(rv){
+        mn = rv->mn; mx = rv->mx;
+        // we only do decibel conversion of the range
+        if(rv->db){
+            mn = powf(10.0f,mn*0.1f);
+            mx = powf(10.0f,mx*0.1f);
+        }
+    } else {
+        mn=0;mx=1;
+    }
+    
+    // we DON'T do decibel conversion.
+    v -= mn;
+    v /= (mx-mn);
+    
+    int val = v*w;
+    int yellow = w*0.7f;
+    int red = w*0.9f;
+    int half = w/2;
+    
+    for(int i=0;i<w;i++){
+        int col;
+        bool rev=true;
+        switch(mode){
+        case Gain:
+            if(i>val){
+                col=PAIR_DARK;rev=false;}
+            else if(i>red)
+                col=PAIR_RED;
+            else if(i>yellow)
+                col=PAIR_YELLOW;
+            else 
+                col=PAIR_GREEN;
+            break;
+        case Pan:
+            if(val<half){
+                if(i>half || i<val){col=PAIR_DARK;rev=false;}
+                else col=PAIR_GREEN;
+            } else {
+                if(i<half || i>val){col=PAIR_DARK;rev=false;}
+                else col=PAIR_GREEN;
+            }
+            break;
+        case Green:
+            if(i>val){col=PAIR_DARK;rev=false;}
+            else col = PAIR_GREEN;
+        }
+        long attr = bold ? A_BOLD: 0;
+        if(rev)attr|=A_REVERSE;
+        attrset(COLOR_PAIR(col) | attr);
+        for(int j=0;j<h;j++)
+            mvaddch(y+j,x+i,' ');
+    }
+}
+
+void MonitorUI::command(MonitorCommandType cmd,float v,Channel *c,int i){
+    Process::writeCmd(cmd,v,c,i);
 }
 
 void MonitorUI::commandGainNudge(float v){
-    if(curchan>=0){
+    if(curchan>=0 && curchan < lastDisplayed.numchans){
         Channel *c = lastDisplayed.chans[curchan].chan;
         if(c->gain->db)v*=0.1f;
         command(MonitorCommandType::ChangeGain,v,c);
     } else {
         v*=0.1f; // master gain is always log
-        command(MonitorCommandType::ChangeMasterGain,v,NULL);
+        command(MonitorCommandType::ChangeMasterGain,v);
     }
-              
 }    
 
 void MonitorUI::commandPanNudge(float v){
-    if(curchan>=0){
+    if(curchan>=0 && curchan < lastDisplayed.numchans){
         Channel *c = lastDisplayed.chans[curchan].chan;
         command(MonitorCommandType::ChangePan,v,c);
     } else 
         command(MonitorCommandType::ChangeMasterPan,v,NULL);
-        
+}
+
+void MonitorUI::commandSendGainNudge(float v){
+    if(curchan>=0 && curchan < lastDisplayed.numchans && curparam>=2){
+        int send = curparam-2;
+        Channel *c = lastDisplayed.chans[curchan].chan;
+        if(send < (int)c->chains.size()){
+            ChainFeed& f = c->chains[send];
+            if(f.gain->db)v*=0.1f;
+            command(MonitorCommandType::ChangeSendGain,v,c,send);
+        }
+    }    
+}
+
+void MonitorUI::simpleChannelCommand(MonitorCommandType cmd){
+    if(curchan>=0 && curchan < lastDisplayed.numchans){
+        Channel *c = lastDisplayed.chans[curchan].chan;
+        command(cmd,0,c);
+    }
+}
+
+
+void MonitorUI::display(MonitorData *d){
+    getmaxyx(stdscr,h,w);
+    if(!d)d=gentestdat();
+    erase();
+    
+    switch(state){
+    case Help:
+        showHelp(helpScreen);
+        break;
+    case Main:
+        displayMain(d);
+        break;
+    case ChanZoom:
+        displayChanZoom(d);
+        break;
+    default:
+        mvaddstr(0,0,"????");
+        break;
+    }
+    
+    displayStatus();
+    
+    lastDisplayed=*d;
+    
+    refresh();
 }
 
 void MonitorUI::handleInput(){
@@ -287,12 +474,55 @@ void MonitorUI::handleInput(){
             gotoPrevState();
         }
         break;
+    case ChanZoom:
+        switch(getch()){
+        case 'q':case 'Q':
+        case 10: gotoPrevState();break;
+        case 'm':case 'M':
+            simpleChannelCommand(MonitorCommandType::ChannelMute);
+            break;
+        case 's':case 'S':
+            simpleChannelCommand(MonitorCommandType::ChannelSolo);
+            break;
+        case KEY_UP:
+            if(--curparam < 0)curparam=0;
+            break;
+        case KEY_DOWN:
+            curparam++; // out-of-range dealt with by display
+            break;
+        case KEY_LEFT:
+            switch(curparam){
+            case 0:commandGainNudge(-1);break;
+            case 1:commandPanNudge(-1);break;
+            default:commandSendGainNudge(-1);break;
+            }
+            break;
+        case KEY_RIGHT:
+            switch(curparam){
+            case 0:commandGainNudge(1);break;
+            case 1:commandPanNudge(1);break;
+            default:commandSendGainNudge(1);break;
+            }
+            break;
+        default:break;
+        }
+        break;
     case Main:
         switch(getch()){
+        case 'm':case 'M':
+            simpleChannelCommand(MonitorCommandType::ChannelMute);
+            break;
+        case 's':case 'S':
+            simpleChannelCommand(MonitorCommandType::ChannelSolo);
+            break;
         case 'h':case 'H':
             helpScreen=MainHelp;
             setStatus("Press any key to return",10);
             gotoState(Help);
+            break;
+        case 10:
+            if(curchan>=0)
+                gotoState(ChanZoom);
             break;
         case 'x':
             curchan++;
@@ -309,8 +539,6 @@ void MonitorUI::handleInput(){
             commandPanNudge(-1);break;
         case KEY_RIGHT:
             commandPanNudge(1);break;
-        case 's':case 'S':
-            saveConfig("save");break;
         case 'q':case 'Q':
             throw _("Quit");
         default:break;

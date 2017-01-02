@@ -1,13 +1,13 @@
 chans {
-    chan1 : gain smooth 0.9 db -10(gain0) 
-            pan 0.2(pan0)
+    chan1 : gain smooth 0.9 db 0(gain0) 
+            pan 0.5(pan0)
             send testchain1 gain db 1,
             
     chan2 : gain db -10(gain1)
-            pan 0.8(pan1),
+            pan 0.5(pan1),
             
     ret   : return testchain1
-            gain db 1(gain2)
+            gain db -10(gain2)
             pan 0.5(pan2)
             
 }

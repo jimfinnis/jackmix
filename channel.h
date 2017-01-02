@@ -39,17 +39,10 @@ class Channel {
     
     static std::vector<Channel *> inputchans,returnchans;
     
-    // after parsing, is traversed to build the actual chain pointers.
-    // Is then not used except for saving.
-    std::vector<std::string> chainNames;
-    
-    // pointers to actual chains, built from chainNames after parsing.
-    std::vector<ChainFeed> chains;
     
     
     // create an input port
     static jack_port_t *makePort(std::string pname);
-    
     // mix this channel into the output
     void mix(float *leftout,float *rightout,int offset,int nframes);
     // store the jack buffer pointers, but do not store them between
@@ -83,9 +76,37 @@ class Channel {
     }
     
     PeakMonitor monl,monr;
+    bool mute=false;
+    static Channel *solochan;
     
 public:
     Value *pan,*gain;
+    // after parsing, is traversed to build the actual chain pointers.
+    // Is then not used except for saving and monitoring.
+    std::vector<std::string> chainNames;
+    
+    // pointers to actual chains, built from chainNames after parsing.
+    std::vector<ChainFeed> chains;
+    
+    void toggleMute(){
+        mute = !mute;
+    }
+    
+    void toggleSolo(){
+        if(solochan == this)
+            solochan = NULL;
+        else
+            solochan = this;
+    }
+    
+    bool isMute(){
+        return mute;
+    }
+    
+    bool isSolo(){
+        return solochan == this;
+    }
+        
     
     Channel(std::string n,int ch,Value *g,Value *p,bool isret,
             std::string rcn="") : monl(n+"l"), monr(n+"r"){

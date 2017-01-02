@@ -48,19 +48,21 @@ struct MonitorData {
 // commands sent from main thread monitor code to processing thread
 
 enum MonitorCommandType {ChangeGain,ChangePan,ChangeMasterGain,
-          ChangeMasterPan};
+          ChangeMasterPan,ChangeSendGain,ChannelMute,ChannelSolo};
 
 struct MonitorCommand {
     MonitorCommand(){}
     
-    MonitorCommand(MonitorCommandType c,float f, Channel *ch){
+    MonitorCommand(MonitorCommandType c,float f, Channel *ch,int a0){
         cmd = c;
         v = f;
         chan = ch;
+        arg0 = a0;
     }
     MonitorCommandType cmd;
     Channel *chan;
     float v;
+    int arg0;
 };
 
 
@@ -89,7 +91,12 @@ public:
 
 class MonitorUI {
     int w,h; // display size
-    int curchan=0;
+    // current chan in main view, -1 is master, anything else is index
+    // into MonitorData.
+    int curchan=-1;
+    // cleared by state changes, reflects currently edited param in
+    // some states.
+    int curparam=0; 
     
     // status line
     string statusMsg;
@@ -100,7 +107,7 @@ class MonitorUI {
     void displayStatus();
     
     enum UIState {
-        Main,Help
+        Main,Help,ChanZoom
           };
     
     UIState state;
@@ -117,6 +124,7 @@ private:
     void gotoState(UIState s){
         prevState = state;
         state = s;
+        curparam = 0;
     }
     void gotoPrevState(){
         state = prevState;
@@ -125,15 +133,36 @@ private:
     
     enum BarMode { Gain,Green,Pan };
     
-    void displayChans(MonitorData *d);
+    // states
+    void displayMain(MonitorData *d);
     void displayChan(int i,ChanMonData* c,bool cur); // c=NULL if invalid
+    
+    void displayChanZoom(MonitorData *c);
+    
+    // v is 0-1 linear unless rv (range value) is present. We treat v and rv separately
+    // so that we can store the value to show, passing it from process to main thread in
+    // a ring buffer.
     void drawVertBar(int y, int x, int h, int w, 
-                     float v,BarMode mode,bool bold);
+                     float v,Value *rv,BarMode mode,bool bold);
+    void drawHorzBar(int y, int x, int h, int w, 
+                     float v,Value *rv,BarMode mode,bool bold);
 
-
+    
+    // nudge the gain of the currently edited send on the current channel
+    // in ChanZoom state.
+    void commandSendGainNudge(float v);
+    // nudge the gain of either the current channel or the master
+    // if curchan<0
     void commandGainNudge(float v);
+    // nudge the pan of either the current channel or the master
+    // if curchan<0
     void commandPanNudge(float v);
-    void command(MonitorCommandType cmd,float v,Channel *c);
+    
+    // generic command to current chan, if valid
+    void simpleChannelCommand(MonitorCommandType cmd);
+    
+    // send some command
+    void command(MonitorCommandType cmd,float v,Channel *c=NULL,int arg0=0);
 };
 
 

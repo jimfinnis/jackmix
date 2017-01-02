@@ -24,16 +24,17 @@ static const char *MainHelpCol1[] = {
     "{UP/DOWN}  - change gain",
     "{LFT/RGT}  - change pan",
     "{q}        - quit",
-    "{c}        - switch to channel",
     "{s}        - save config",
-    "           mode",
+    "{ENTER}    - edit channel",
     NULL
 };
 
 static const char *MainHelpCol2[] = {
 //   0123456789012345678901234567890
-    "[      Channel mode]",
-    "{ESC} - return to main mode",
+    "[        Channel edit mode]",
+    "{ENTER}    - return to main mode",
+    "{UP/DOWN}  - switch parameter",
+    "{LFT/RGT}  - change parameter",
     NULL
 };
 

@@ -12,6 +12,8 @@
 #include "save.h"
 #include "process.h"
 
+Channel *Channel::solochan=NULL;
+
 // two sets of channels - input channels (which have a jack port)
 // and return channels (which mix in the output of ladspa effects)
 
@@ -86,14 +88,19 @@ void Channel::mix(float *__restrict leftout,
                   nframes);
     }
     
-    // and add to output buffers
-    for(int i=0;i<nframes;i++){
-        leftout[i] += tmpl[i];
-        rightout[i] += tmpr[i];
-    }
     // monitoring
     monl.in(tmpl,nframes);
     monr.in(tmpr,nframes);
+    
+    // add the channel to the master outputs if it is not muted,
+    // and there is not a solo channel (which isn't us)
+    if(!mute && !(solochan && (this!=solochan))){
+        // and add to output buffers
+        for(int i=0;i<nframes;i++){
+            leftout[i] += tmpl[i];
+            rightout[i] += tmpr[i];
+        }
+    }
     
     // mix into chains
     std::vector<ChainFeed>::iterator it;
