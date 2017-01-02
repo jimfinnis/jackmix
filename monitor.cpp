@@ -6,10 +6,11 @@
 
 #include <ncurses.h>
 
-#include "monitor.h"
 #include "ringbuffer.h"
 #include "exception.h"
 #include "save.h"
+#include "process.h"
+#include "monitor.h"
 
 #include "help.h"
 
@@ -227,12 +228,8 @@ void MonitorUI::drawVertBar(int y, int x, int h, int w,
     }
 }
 
-extern RingBuffer<MonitorCommand> moncmdring;
-
 void MonitorUI::command(MonitorCommandType cmd,float v,Channel *c){
-    if(moncmdring.canWrite()){
-        moncmdring.write(MonitorCommand(cmd,v,c));
-    }
+    Process::writeCmd(cmd,v,c);
 }
 
 void MonitorUI::commandGainNudge(float v){

@@ -1,0 +1,70 @@
+/**
+ * @file process.h
+ * @brief Encapsulates audio processing and the ring buffers
+ * for communicating between the main and audio threads. Note
+ * that everything is static.
+ *
+ */
+
+#ifndef __PROCESS_H
+#define __PROCESS_H
+
+#include "ringbuffer.h"
+#include "monitor.h"
+
+struct Process {
+    static jack_client_t *client;
+
+    static volatile bool parsedAndReady;
+    // process thread -> main thread, monitoring data
+    static RingBuffer<MonitorData> monring;
+    // main thread -> process thread, commands
+    static RingBuffer<MonitorCommand> moncmdring;
+    /// sample rate 
+    static uint32_t samprate;
+    
+    /// peak monitors for the master channel
+    static PeakMonitor masterMonL,masterMonR;
+    // have to be ptrs so they get registered
+    static Value *masterPan,*masterGain;
+    
+    // initialise data
+    static void init();
+    
+    // initialise jack
+    static void initJack();
+    
+    // force a shutdown
+    static void shutdown();
+    
+    // poll the monitoring ring from the main thread; gives
+    // the last block of data from the ring. returns false if
+    // no data present.
+    static bool pollMonRing(MonitorData *p);
+    
+    /// add a command to be communicated to the process thread
+    static void writeCmd(MonitorCommandType cmd,
+                         float v,class Channel *c);
+    
+    
+    // handle a command coming in on the command ring buffer
+    static void processMonitorCommand(MonitorCommand& c);
+    
+    
+    // sample rate change callback
+    static int callbackSrate(jack_nframes_t nframes, void *arg);
+    
+    // callback for when jack shuts down
+    static void callbackShutdown(void *arg);
+        
+
+    // this is called repeatedly by process to do the mixing.
+    static void subproc(float *left,float *right,int offset,int n);
+    
+    // the main process - static so it's just a function and can
+    // be used as a callback
+    static int callbackProcess(jack_nframes_t nframes, void *arg);
+    
+};
+
+#endif /* __PROCESS_H */

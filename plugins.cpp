@@ -18,12 +18,12 @@
 #include <iostream>
 
 #include "channel.h"
-#include "plugins.h"
 #include "exception.h"
 #include "bounds.h"
+#include "process.h"
+#include "plugins.h"
 
 using namespace std;
-extern uint32_t samprate;
 
 PluginData::PluginData(string l,const LADSPA_Descriptor *d){
     label=l;
@@ -37,9 +37,9 @@ PluginData::PluginData(string l,const LADSPA_Descriptor *d){
         
         if(h->HintDescriptor & LADSPA_HINT_SAMPLE_RATE){
             if(h->HintDescriptor & LADSPA_HINT_BOUNDED_BELOW)
-                lower *= samprate;
+                lower *= Process::samprate;
             if(h->HintDescriptor & LADSPA_HINT_BOUNDED_ABOVE)
-                upper *= samprate;
+                upper *= Process::samprate;
         }
         
         if(hd & LADSPA_HINT_DEFAULT_MINIMUM)
@@ -116,13 +116,13 @@ Bounds PluginData::getBounds(string pname) {
     if(h->HintDescriptor & LADSPA_HINT_BOUNDED_BELOW){
         b.lower = h->LowerBound;
         if(h->HintDescriptor & LADSPA_HINT_SAMPLE_RATE)
-            b.lower *= samprate;
+            b.lower *= Process::samprate;
         b.flags |= Bounds::Lower;
     }
     if(h->HintDescriptor & LADSPA_HINT_BOUNDED_ABOVE){
         b.upper = h->UpperBound;
         if(h->HintDescriptor & LADSPA_HINT_SAMPLE_RATE)
-            b.upper *= samprate;
+            b.upper *= Process::samprate;
         b.flags |= Bounds::Upper;
     }
     if(getDefault(pname,&b.deflt))
@@ -154,7 +154,7 @@ static std::vector<PluginInstance *> instances;
 PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128){
     p=plugin;
     name = n;
-    h=(*p->desc->instantiate)(p->desc,samprate);
+    h=(*p->desc->instantiate)(p->desc,Process::samprate);
     
     // connect up the ports to the defaults, and create output buffers
     for(unsigned int i=0;i<p->desc->PortCount;i++){

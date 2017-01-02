@@ -17,12 +17,12 @@
 #include "tokens.h"
 #include "plugins.h"
 #include "parser.h"
+#include "process.h"
 #include "save.h"
 
 void saveMaster(ostream& out){
-    extern Value *masterGain,*masterPan;
-    out << "master gain " << masterGain->toString() << " ";
-    out << "pan " << masterPan->toString() << endl;
+    out << "master gain " << Process::masterGain->toString() << " ";
+    out << "pan " << Process::masterPan->toString() << endl;
 }
 
 

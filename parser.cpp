@@ -12,6 +12,7 @@
 #include "tokeniser.h"
 #include "tokens.h"
 #include "plugins.h"
+#include "process.h"
 #include "parser.h"
 
 Tokeniser tok;
@@ -207,11 +208,10 @@ void parsePlugin(){
 }
 
 void parseMaster(){
-    extern Value *masterGain,*masterPan;
     if(tok.getnext()!=T_GAIN)expected("'gain'");
-    parseValue(Bounds(),masterGain);
+    parseValue(Bounds(),Process::masterGain);
     if(tok.getnext()!=T_PAN)expected("'pan'");
-    parseValue(Bounds(),masterPan);
+    parseValue(Bounds(),Process::masterPan);
 }
 
 /// parses the config file as a single string

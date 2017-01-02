@@ -10,9 +10,18 @@
 #include "utils.h"
 #include "monitor.h"
 #include "save.h"
+#include "process.h"
 
 // two sets of channels - input channels (which have a jack port)
 // and return channels (which mix in the output of ladspa effects)
+
+jack_port_t *Channel::makePort(std::string pname){
+    return jack_port_register(
+                              Process::client,
+                              pname.c_str(),
+                              JACK_DEFAULT_AUDIO_TYPE, 
+                              JackPortIsInput, 0);
+}
 
 std::vector<Channel *> Channel::inputchans;
 std::vector<Channel *> Channel::returnchans;

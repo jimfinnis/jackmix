@@ -7,6 +7,9 @@
 #ifndef __SAVE_H
 #define __SAVE_H
 
+#include <vector>
+#include <string>
+
 /// save the system configuration to a file
 void saveConfig(const char *fn);
 

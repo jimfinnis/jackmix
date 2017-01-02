@@ -47,14 +47,8 @@ class Channel {
     std::vector<ChainFeed> chains;
     
     
-    static jack_port_t *makePort(std::string pname){
-        extern jack_client_t *client;
-        return jack_port_register(
-                                  client,
-                                  pname.c_str(),
-                                  JACK_DEFAULT_AUDIO_TYPE, 
-                                  JackPortIsInput, 0);
-    }
+    // create an input port
+    static jack_port_t *makePort(std::string pname);
     
     // mix this channel into the output
     void mix(float *leftout,float *rightout,int offset,int nframes);
