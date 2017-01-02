@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "channel.h"
+#include "timeutils.h"
 
 using namespace std;
 
@@ -63,7 +64,10 @@ struct MonitorCommand {
 };
 
 
-
+struct StatusLine {
+    void setmsg(string s);
+    void display();
+};
 
 class MonitorUIDummy {
 public:
@@ -86,6 +90,14 @@ public:
 class MonitorUI {
     int w,h; // display size
     int curchan=0;
+    
+    // status line
+    string statusMsg;
+    bool statusShowing=false;
+    Time statusTimeToEnd;
+    
+    void setStatus(string s,double t); // msg, time to show
+    void displayStatus();
     
     enum UIState {
         Main,Help

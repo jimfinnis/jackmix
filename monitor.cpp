@@ -19,6 +19,26 @@
 #define PAIR_GREEN 3
 #define PAIR_HILIGHT 4
 
+void MonitorUI::setStatus(string s,double t){
+    statusTimeToEnd=Time()+Time(t);
+    statusMsg = s;
+    statusShowing=true;
+}
+    
+
+void MonitorUI::displayStatus(){
+    if(statusShowing){
+        Time now;
+        if(now>statusTimeToEnd){
+            statusShowing=false;
+        } else {
+            mvaddstr(h-1,0,statusMsg.c_str());
+        }
+    }
+}
+
+
+
 MonitorUI::MonitorUI(){
     initscr();
     keypad(stdscr,TRUE);
@@ -28,6 +48,7 @@ MonitorUI::MonitorUI(){
     curs_set(0);
     state=Main;
     prevState=Main;
+    setStatus("Ready",1);
     
     timeout(0); // nonblocking read
     
@@ -89,8 +110,6 @@ static void showHelp(const char ***h){
             }
         }
     }
-    refresh();
-    
 }
 
 
@@ -110,6 +129,7 @@ void MonitorUI::display(MonitorData *d){
         break;
     }
     
+    displayStatus();
     
     lastDisplayed=*d;
     
@@ -181,7 +201,6 @@ void MonitorUI::displayChan(int i,ChanMonData* c,bool cur){
     drawVertBar(2,x+6,h-3,1,pan,Pan,cur);
     
     attrset(COLOR_PAIR(0)|A_BOLD);
-    mvaddstr(h-1,0,"Status: OK");
 }
 
 
