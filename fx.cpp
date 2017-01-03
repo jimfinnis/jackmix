@@ -12,7 +12,6 @@
 #include "tokeniser.h"
 #include "tokens.h"
 #include "exception.h"
-#include "plugins.h"
 #include "value.h"
 #include "global.h"
 #include "parser.h"
@@ -21,17 +20,8 @@
 
 using namespace std;
 
+vector<ChainInterface *> chainlist;
 Value *parseValue(Bounds b,Value *v=NULL);
-
-// stores temporary data about an input connection for an effect
-struct InputParseData {
-    int port; // the port for this input
-    
-    // and where it comes from:
-    int channel; // -1 if this is an internal connection, 0=left,1=right
-    // if channel=-1, info about the effect this comes from
-    string fromeffect,fromport;
-};
 
 struct Chain : public ChainInterface {
     // vector so we can run in order
@@ -44,20 +34,20 @@ struct Chain : public ChainInterface {
     
     // input connection data to resolve later, indexed
     // by same order as fxlist, then within that, by input.
-    vector<vector<InputParseData>*> parseData;
+    vector<vector<InputConnectionData>*> inputConnData;
     
     // resolve connections within the chain
     void resolveInputs(){
-        if(fxlist.size()!=parseData.size())
+        if(fxlist.size()!=inputConnData.size())
             throw _("size mismatch in effect lists");
         
         // this wires up the input ports
         for(unsigned int i=0;i<fxlist.size();i++){
             PluginInstance *p = fxlist[i];
-            vector<InputParseData> *ipdl = parseData[i];
+            vector<InputConnectionData> *ipdl = inputConnData[i];
             
             for(unsigned int j=0;j<ipdl->size();j++){
-                InputParseData& ipd = (*ipdl)[j];
+                InputConnectionData& ipd = (*ipdl)[j];
                 float *buf;
                 switch(ipd.channel){
                 case 0:
@@ -116,6 +106,20 @@ struct Chain : public ChainInterface {
         }
     }
     
+    virtual ChainEditData *createEditData(){
+        ChainEditData *d = new ChainEditData();
+        vector<PluginInstance *>::iterator it;
+        for(it = fxlist.begin();it!=fxlist.end();it++){
+            PluginInstance *p = *it;
+            d->fx.push_back(p);
+        }
+        d->inputConnData = &inputConnData;
+        d->leftouteffect = leftouteffect;
+        d->leftoutport = leftoutport;
+        d->rightouteffect = rightouteffect;
+        d->rightoutport = rightoutport;
+        return d;
+    }
     virtual void save(ostream &out,string name);
 };
 
@@ -146,11 +150,11 @@ void parseEffect(Chain &c){
     
     if(tok.getnext()!=T_IN)expected("'in'");
     
-    vector<InputParseData> *ipdp = new vector<InputParseData>();
-    c.parseData.push_back(ipdp);
+    vector<InputConnectionData> *ipdp = new vector<InputConnectionData>();
+    c.inputConnData.push_back(ipdp);
     
     parseList([&c,&p,&ipdp]{
-              InputParseData ipd;
+              InputConnectionData ipd;
               string pname = getnextidentorstring();
               ipd.port = p->getPortIdx(pname);
               if(!LADSPA_IS_PORT_INPUT(p->desc->PortDescriptors[ipd.port]))
@@ -197,6 +201,7 @@ void parseEffect(Chain &c){
         printf("Param %s: %f\n",pname.c_str(),v->get());
         // and connect it
         i->connect(pname,v->getAddr());
+        delete i->paramsMap[pname];
         i->paramsMap[pname]=v;
     });
     
@@ -218,6 +223,8 @@ void parseStereoChain(){
     if(tok.getnext()!=T_OCURLY)expected("'{'");
     
     Chain& chain = chains.emplace(name,Chain()).first->second;
+    chain.name = name;
+    chainlist.push_back(&chain);
     
     
     // get the names of the output fx and ports (two, this is
@@ -296,14 +303,14 @@ void Chain::save(ostream &out,string name){
     for(unsigned int pidx=0;pidx<fxlist.size();pidx++){
         stringstream fss;
         PluginInstance *p = fxlist[pidx];
-        vector<InputParseData> *inp = parseData[pidx];
+        vector<InputConnectionData> *inp = inputConnData[pidx];
         
         fss << "      " << p->p->label << " " << p->name << "\n";
         fss << "      in {\n";
         vector<string> strs;
         for(unsigned int iidx=0;iidx<inp->size();iidx++){
             stringstream ss;
-            InputParseData& ipd = (*inp)[iidx];
+            InputConnectionData& ipd = (*inp)[iidx];
             ss << "        \"" << p->p->desc->PortNames[ipd.port] << "\"" ;
             ss << " from ";
             switch(ipd.channel){

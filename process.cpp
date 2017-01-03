@@ -93,10 +93,15 @@ bool Process::pollMonRing(MonitorData *p){
 
 void Process::writeCmd(MonitorCommandType cmd,
                        float v,class Channel *c,int i){
-    if(moncmdring.canWrite()){
-        moncmdring.write(MonitorCommand(cmd,v,c,i));
-    }
+    writeCmd(MonitorCommand(cmd,v,c,i));
 }    
+
+void Process::writeCmd(MonitorCommand cmd){
+    if(moncmdring.canWrite()){
+        moncmdring.write(cmd);
+    }
+}
+
 
 
 /*
@@ -125,6 +130,9 @@ void Process::processMonitorCommand(MonitorCommand& c){
         break;
     case ChannelSolo:
         c.chan->toggleSolo();
+        break;
+    case ChangeEffectParam:
+        c.vp->nudge(c.v);
         break;
     }
 }
@@ -163,7 +171,6 @@ void Process::subproc(float *left,float *right,int offset,int n){
 
 int Process::callbackProcess(jack_nframes_t nframes, void *arg){
     if(!parsedAndReady)return 0;
-    
     // every now and then, read data out of the ring buffers and update
     // the values (which use LPFs).
     Ctrl::pollAllCtrlRings();

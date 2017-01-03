@@ -42,9 +42,13 @@ struct Process {
     // no data present.
     static bool pollMonRing(MonitorData *p);
     
-    /// add a command to be communicated to the process thread
+    /// add a command to be communicated to the process thread.
+    /// Deprecated.
     static void writeCmd(MonitorCommandType cmd,
                          float v,class Channel *c,int i);
+    
+    /// add a command to be communicated to the process thread.
+    static void writeCmd(MonitorCommand cmd);
     
     
     // handle a command coming in on the command ring buffer

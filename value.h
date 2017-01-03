@@ -50,6 +50,10 @@ public:
         values.push_back(this);
     }
     
+    float *getptr(){
+        return &value;
+    }
+    
     /// which options (max, min etc.) have been used if it's hard to
     /// tell by just examining the value - used for saving config.
     int optsset;
@@ -93,6 +97,10 @@ public:
             target=powf(10.0,v*0.1f);
         else
             target=v;
+    }
+    
+    float getTarget(){
+        return target;
     }
     
     /// sets the target value, converting from 0-1 first.

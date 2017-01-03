@@ -10,10 +10,13 @@
 #include <string.h>
 
 #include "utils.h"
+#include "plugins.h"
 
 // the interface for FX chains. The chain itself inherits this and builds upon it.
 
 struct ChainInterface {
+    std::string name; // name for viewing
+    
     // these are the two input buffers for the chain
     float inpleft[BUFSIZE],inpright[BUFSIZE];
     // these are pointers to the output buffers for the two
@@ -51,8 +54,40 @@ struct ChainInterface {
     
     void save(std::ostream &out,std::string name);
     static void saveAll(std::ostream &out);
+    
+    // generate a structure containing the connection and parameter data
+    // for all fx in the chain, for editing. Messy, slightly, but it means
+    // the actual fx gubbins stays encapsulated in fx.cpp.
+    
+    virtual struct ChainEditData *createEditData()=0;
+    
 };
 
+extern std::vector<ChainInterface *> chainlist;
+
+
+// stores data about an input connection for an effect. This isn't
+// used in processing, but is used in saving and editing.
+
+struct InputConnectionData {
+    int port; // the port for this input
+    
+    // and where it comes from:
+    int channel; // -1 if this is an internal connection, 0=left,1=right
+    // if channel=-1, info about the effect this comes from
+    std::string fromeffect,fromport;
+};
+
+// editor data used by the monitor.
+
+struct ChainEditData {
+    // a list of all the effects 
+    std::vector<PluginInstance *> fx;
+    // names of the output connections from the chain
+    std::string leftouteffect,leftoutport;
+    std::string rightouteffect,rightoutport;
+    std::vector<std::vector<InputConnectionData>*> *inputConnData;
+};
 
 
 #endif /* __FX_H */

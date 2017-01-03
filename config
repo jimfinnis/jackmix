@@ -67,5 +67,20 @@ chain {
             in { input from RIGHT }
             params { roomsize default }
         }
-    }
+    },
+    
+    testchain2 {
+        out filt:Output, filt:Output
+        fx{
+            gverb gverb1
+            in {  input from LEFT  }
+            params {  roomsize default },
+            
+            buttlow_iir filt
+            in {Input from gverb1:"Left output"}
+            params { }
+            }   
+        }   
+                
+                
 }

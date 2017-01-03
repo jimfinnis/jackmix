@@ -24,12 +24,14 @@
 #define PAIR_REDTEXT 6
 #define PAIR_BLUETEXT 7
 
+static bool inHelp=false;
+
 void MonitorUI::setStatus(string s,double t){
     statusTimeToEnd=Time()+Time(t);
     statusMsg = s;
     statusShowing=true;
 }
-    
+
 
 void MonitorUI::displayStatus(){
     if(statusShowing){
@@ -276,8 +278,124 @@ void MonitorUI::displayChanZoom(MonitorData *d){
     refresh();
 }
 
+// the chain we are currently viewing
+static ChainEditData *chainData=NULL;
+// the effect within the chain we are currently viewing
+static int cureffect=0;
+// the parameter within the effect we are currently editing
+static int cureffectparam=0;
+
+// what are we doing? Scrolling through chains, or looking at the effects?
+enum ChainListMode{Chain,Effects,Params};
+static ChainListMode chainListMode=Chain;
+
+static void regenChainData(int idx){
+    if(chainData)
+        delete chainData;
+    if(idx<(int)chainlist.size())
+        chainData = chainlist[idx]->createEditData();
+    else
+        chainData = NULL;
+    cureffect=0;
+    cureffectparam=0;
+}
+
 void MonitorUI::displayChainList(){
     title("CHAIN LIST");
+    
+    int chainHilight = COLOR_PAIR(PAIR_HILIGHT);
+    int effectHilight = COLOR_PAIR(PAIR_HILIGHT);
+    int paramHilight = COLOR_PAIR(PAIR_HILIGHT);
+    
+    switch(chainListMode){
+    case Chain:chainHilight|=A_BOLD;break;
+    case Effects:effectHilight|=A_BOLD;break;
+    case Params:paramHilight|=A_BOLD;break;
+    }
+    
+    // list
+    for(unsigned int i=0;i<chainlist.size();i++){
+        string n = chainlist[i]->name.c_str();
+        n.resize(20,' ');
+        attrset((int)i==curparam ? chainHilight : COLOR_PAIR(0));
+        mvaddstr(i+1,0,n.c_str());
+    }
+    //chain
+    if(chainData){
+        int x=25;
+        int y=1;
+        
+        attrset(COLOR_PAIR(0));
+        mvaddstr(y++,x,"left output from ");
+        addstr(chainData->leftouteffect.c_str());
+        addstr(":");
+        addstr(chainData->leftoutport.c_str());
+        mvaddstr(y++,x,"right output from ");
+        addstr(chainData->rightouteffect.c_str());
+        addstr(":");
+        addstr(chainData->rightoutport.c_str());
+        y++;
+        attrset(COLOR_PAIR(0)|A_BOLD);
+        mvaddstr(y++,x,"Effects:");
+        // each effect
+        for(unsigned int i=0;i<chainData->fx.size();i++){
+            PluginInstance *fx= chainData->fx[i];
+            vector<InputConnectionData> *icd = 
+                  (*chainData->inputConnData)[i];
+            
+            // name of effect
+            attrset(cureffect==(int)i?effectHilight:COLOR_PAIR(0));
+            mvaddstr(y++,x,fx->name.c_str());
+            
+            // input connections
+            for(unsigned int c=0;c<icd->size();c++){
+                InputConnectionData &id = (*icd)[c];
+                const char *portName = fx->p->desc->PortNames[id.port];
+                attrset(COLOR_PAIR(0));
+                mvaddstr(y++,x+20,portName);
+                addstr(" from ");
+                switch(id.channel){
+                case 0:
+                    attrset(COLOR_PAIR(PAIR_REDTEXT));
+                    addstr("LEFT");break;
+                case 1:
+                    attrset(COLOR_PAIR(PAIR_REDTEXT));
+                    addstr("RIGHT");break;
+                default:
+                    addstr(id.fromeffect.c_str());
+                    addstr(":");
+                    addstr(id.fromport.c_str());
+                    break;
+                }
+            }
+        }
+        
+        attrset(COLOR_PAIR(0));
+        
+        // current effect parameters
+        y+=5;
+        PluginInstance *fx;
+        if(cureffect>=0 && cureffect<(int)chainData->fx.size())
+            fx = chainData->fx[cureffect];
+        else
+            fx = NULL;
+        if(fx){
+            for(int i=0;i<(int)fx->paramsList.size();i++){
+                string name = fx->paramsList[i];
+                Value *v = fx->paramsMap[name];
+                attrset(i==cureffectparam?paramHilight:COLOR_PAIR(0));
+                mvaddstr(y,x,name.c_str());
+                stringstream ss;
+                ss << v->get() << "  range: "<< v->mn << " to " << v->mx;
+                mvaddstr(y,x+50,ss.str().c_str());
+                drawHorzBar(y+1,x,1,w-x-5,v->get(),v,Green,
+                            i==cureffectparam && chainListMode==Params);
+                
+                y+=2;
+            }
+        }
+    }
+    attrset(COLOR_PAIR(0));
 }
 
 
@@ -307,7 +425,7 @@ void MonitorUI::drawVertBar(int y, int x, int h, int w,
         mn=0;mx=1;
     }
     
-        
+    
     
     // we DON'T do decibel conversion.
     v -= mn;
@@ -456,6 +574,24 @@ void MonitorUI::commandSendGainNudge(float v){
     }    
 }
 
+void MonitorUI::commandParamNudge(float v){
+    if(chainData && cureffect>=0 && cureffect<(int)chainData->fx.size()){
+        PluginInstance *fx;
+        if(cureffect>=0 && cureffect<(int)chainData->fx.size())
+            fx = chainData->fx[cureffect];
+        else
+            fx = NULL;
+        
+        if(fx && cureffectparam>=0 &&
+           cureffectparam<(int)fx->paramsList.size()){
+            Value *p = fx->paramsMap[fx->paramsList[cureffectparam]];
+            Process::writeCmd(MonitorCommand(MonitorCommandType::ChangeEffectParam,
+                                             v,p));
+        }
+    }
+     
+}
+
 void MonitorUI::simpleChannelCommand(MonitorCommandType cmd){
     if(curchan>=0 && curchan < lastDisplayed.numchans){
         Channel *c = lastDisplayed.chans[curchan].chan;
@@ -469,23 +605,26 @@ void MonitorUI::display(MonitorData *d){
     if(!d)d=gentestdat();
     erase();
     
-    switch(state){
-    case Help:
+    helpScreen = MainHelp;
+    
+    if(inHelp){
         title("HELP");
         showHelp(helpScreen);
-        break;
-    case Main:
-        displayMain(d);
-        break;
-    case ChanZoom:
-        displayChanZoom(d);
-        break;
-    case ChainList:
-        displayChainList();
-        break;
-    default:
-        mvaddstr(0,0,"????");
-        break;
+    } else {
+        switch(state){
+        case Main:
+            displayMain(d);
+            break;
+        case ChanZoom:
+            displayChanZoom(d);
+            break;
+        case ChainList:
+            displayChainList();
+            break;
+        default:
+            mvaddstr(0,0,"????");
+            break;
+        }
     }
     
     displayStatus();
@@ -496,93 +635,149 @@ void MonitorUI::display(MonitorData *d){
 }
 
 void MonitorUI::handleInput(){
-    switch(state){
-    case Help:
-        if(getch()!=ERR){
-            setStatus("",0);
-            gotoPrevState();
-        }
-        break;
-    case ChanZoom:
-        switch(getch()){
-        case 'q':case 'Q':
-        case 10: gotoPrevState();break;
-        case 'm':case 'M':
-            simpleChannelCommand(MonitorCommandType::ChannelMute);
-            break;
-        case 's':case 'S':
-            simpleChannelCommand(MonitorCommandType::ChannelSolo);
-            break;
-        case KEY_UP:
-            if(--curparam < 0)curparam=0;
-            break;
-        case KEY_DOWN:
-            curparam++; // out-of-range dealt with by display
-            break;
-        case KEY_LEFT:
-            switch(curparam){
-            case 0:commandGainNudge(-1);break;
-            case 1:commandPanNudge(-1);break;
-            default:commandSendGainNudge(-1);break;
+    PluginInstance *fx;
+    
+    if(inHelp){
+        if(getch()!=ERR)inHelp=false;
+    } else {
+        int c = getch();
+        if(c=='h'||c=='H')inHelp=true;
+        switch(state){
+        case ChanZoom:
+            switch(c){
+            case 'q':case 'Q':
+            case 10: gotoPrevState();break;
+            case 'm':case 'M':
+                simpleChannelCommand(MonitorCommandType::ChannelMute);
+                break;
+            case 's':case 'S':
+                simpleChannelCommand(MonitorCommandType::ChannelSolo);
+                break;
+            case KEY_UP:
+                if(--curparam < 0)curparam=0;
+                break;
+            case KEY_DOWN:
+                curparam++; // out-of-range dealt with by display
+                break;
+            case KEY_LEFT:
+                switch(curparam){
+                case 0:commandGainNudge(-1);break;
+                case 1:commandPanNudge(-1);break;
+                default:commandSendGainNudge(-1);break;
+                }
+                break;
+            case KEY_RIGHT:
+                switch(curparam){
+                case 0:commandGainNudge(1);break;
+                case 1:commandPanNudge(1);break;
+                default:commandSendGainNudge(1);break;
+                }
+                break;
+            default:break;
             }
             break;
-        case KEY_RIGHT:
-            switch(curparam){
-            case 0:commandGainNudge(1);break;
-            case 1:commandPanNudge(1);break;
-            default:commandSendGainNudge(1);break;
+        case ChainList:
+            switch(c){
+            case 10:
+                gotoPrevState();
+                break;
+            case 9: // tab
+                switch(chainListMode){
+                case Chain:chainListMode=Effects;break;
+                case Effects:chainListMode=Params;break;
+                case Params:chainListMode=Chain;break;
+                }
+                break;
+            case KEY_UP:
+                switch(chainListMode){
+                case Chain:curparam--;
+                    if(curparam<0)curparam=((int)chainlist.size())-1;
+                    regenChainData(curparam);
+                    break;
+                case Effects:
+                    cureffect--;
+                    if(cureffect<0)cureffect=0;
+                    break;
+                case Params:
+                    cureffectparam--;
+                    if(cureffectparam<0)cureffectparam=0;
+                    break;
+                }
+                break;
+            case KEY_DOWN:
+                switch(chainListMode){
+                case Chain:curparam++;
+                    if(curparam>=(int)chainlist.size())
+                        curparam=0;
+                    regenChainData(curparam);
+                    break;
+                case Effects:
+                    cureffect++;
+                    if(chainData && cureffect>=(int)chainData->fx.size())
+                        cureffect=0;
+                    break;
+                case Params:
+                    if(chainData && cureffect>=0 &&
+                       cureffect<(int)chainData->fx.size())
+                        fx = chainData->fx[cureffect];
+                    else
+                        fx = NULL;
+                    if(fx){
+                        cureffectparam++;
+                        if(cureffectparam>=(int)fx->paramsList.size())
+                            cureffectparam=0;
+                    }
+                    break;
+                }
+                break;
+            case KEY_LEFT:
+                if(chainListMode==Params)
+                    commandParamNudge(-1);
+                break;
+            case KEY_RIGHT:
+                if(chainListMode==Params)
+                    commandParamNudge(1);
+                break;
+            default:break;
             }
-            break;
+        case Main:
+            switch(c){
+            case 'p':
+                saveConfig("save");break;
+            case 'c':case 'C':
+                gotoState(ChainList);
+                regenChainData(curparam);
+                break;
+            case 'm':case 'M':
+                simpleChannelCommand(MonitorCommandType::ChannelMute);
+                break;
+            case 's':case 'S':
+                simpleChannelCommand(MonitorCommandType::ChannelSolo);
+                break;
+            case 10:
+                if(curchan>=0)
+                    gotoState(ChanZoom);
+                break;
+            case 'x':
+                curchan++;
+                break;
+            case 'z':
+                if(--curchan<-1)
+                    curchan=0;
+                break;
+            case KEY_UP:
+                commandGainNudge(1);break;
+            case KEY_DOWN:
+                commandGainNudge(-1);break;
+            case KEY_LEFT:
+                commandPanNudge(-1);break;
+            case KEY_RIGHT:
+                commandPanNudge(1);break;
+            case 'q':case 'Q':
+                throw _("Quit");
+            default:break;
+            }
         default:break;
         }
-        break;
-    case ChainList:
-        switch(getch()){
-        case 10:
-            gotoPrevState();
-            break;
-        default:break;
-        }
-        break;
-    case Main:
-        switch(getch()){
-        case 'c':case 'C':
-            gotoState(ChainList);
-            break;
-        case 'm':case 'M':
-            simpleChannelCommand(MonitorCommandType::ChannelMute);
-            break;
-        case 's':case 'S':
-            simpleChannelCommand(MonitorCommandType::ChannelSolo);
-            break;
-        case 'h':case 'H':
-            helpScreen=MainHelp;
-            setStatus("Press any key to return",10);
-            gotoState(Help);
-            break;
-        case 10:
-            if(curchan>=0)
-                gotoState(ChanZoom);
-            break;
-        case 'x':
-            curchan++;
-            break;
-        case 'z':
-            if(--curchan<-1)
-                curchan=0;
-            break;
-        case KEY_UP:
-            commandGainNudge(1);break;
-        case KEY_DOWN:
-            commandGainNudge(-1);break;
-        case KEY_LEFT:
-            commandPanNudge(-1);break;
-        case KEY_RIGHT:
-            commandPanNudge(1);break;
-        case 'q':case 'Q':
-            throw _("Quit");
-        default:break;
-        }
-    default:break;
     }
 }

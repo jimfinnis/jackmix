@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <stdint.h>
+#include <signal.h>
 #include <string>
 #include <iostream>
 
@@ -49,7 +50,14 @@ void loop(){
     }
 }
 
+void shutdown(int s){
+    throw _("abort");
+}
+
 int main(int argc,char *argv[]){
+    
+    signal(SIGINT,shutdown);
+    signal(SIGQUIT,shutdown);
     
     try {
         // initialise data structures
@@ -60,8 +68,8 @@ int main(int argc,char *argv[]){
         Process::initJack();
         
         // load LADSPA plugins
-        //    PluginMgr::loadFilesIn("/usr/lib/ladspa");
-        PluginMgr::loadFilesIn("./testpl");
+        PluginMgr::loadFilesIn("/usr/lib/ladspa");
+        //PluginMgr::loadFilesIn("./testpl");
         
         // parse the config
         parseConfig("config");
@@ -81,9 +89,8 @@ int main(int argc,char *argv[]){
     try {
         loop();
     } catch(string s){
+//        PluginMgr::close();
         cout << "Fatal error: " << s << endl;
     }
-    
-    
     Process::shutdown();
 }

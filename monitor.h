@@ -48,7 +48,9 @@ struct MonitorData {
 // commands sent from main thread monitor code to processing thread
 
 enum MonitorCommandType {ChangeGain,ChangePan,ChangeMasterGain,
-          ChangeMasterPan,ChangeSendGain,ChannelMute,ChannelSolo};
+          ChangeMasterPan,ChangeSendGain,ChannelMute,ChannelSolo,
+          ChangeEffectParam
+};
 
 struct MonitorCommand {
     MonitorCommand(){}
@@ -59,9 +61,17 @@ struct MonitorCommand {
         chan = ch;
         arg0 = a0;
     }
+    
+    MonitorCommand(MonitorCommandType c,float f,Value *p){
+        cmd = c;
+        vp = p;
+        v = f;
+    }
+    
     MonitorCommandType cmd;
     Channel *chan;
     float v;
+    Value *vp;
     int arg0;
 };
 
@@ -107,7 +117,7 @@ class MonitorUI {
     void displayStatus();
     
     enum UIState {
-        Main,Help,ChanZoom,ChainList
+        Main,ChanZoom,ChainList
           };
     
     UIState state;
@@ -161,12 +171,15 @@ private:
     // nudge the pan of either the current channel or the master
     // if curchan<0
     void commandPanNudge(float v);
+    // nudge the current effect parameter
+    void commandParamNudge(float v);
     
     // generic command to current chan, if valid
     void simpleChannelCommand(MonitorCommandType cmd);
     
     // send some command
     void command(MonitorCommandType cmd,float v,Channel *c=NULL,int arg0=0);
+    
 };
 
 

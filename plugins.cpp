@@ -156,17 +156,39 @@ PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128
     name = n;
     h=(*p->desc->instantiate)(p->desc,Process::samprate);
     
-    // connect up the ports to the defaults, and create output buffers
+    // connect up the ports, creating new values for each control
+    // and create output buffers
     for(unsigned int i=0;i<p->desc->PortCount;i++){
         portsConnected[i]=false;
-        if(p->defaultPortValues.find(i)!=p->defaultPortValues.end()){
-            float *addr = &(p->defaultPortValues[i]);
+        if(LADSPA_IS_PORT_CONTROL(p->desc->PortDescriptors[i])){
+            float initval;
+            if(p->defaultPortValues.find(i)!=p->defaultPortValues.end())
+                initval = p->defaultPortValues[i];
+            else
+                initval = 0; // really, there should be a default.
+            
+            Bounds b = plugin->getBounds(p->desc->PortNames[i]);
+            Value *v = new Value();
+            // if no upper or lower bound set, what to do???
+            // Just set to the default val for now.
+            v->mx = (b.flags & Bounds::Upper)?b.upper:initval;
+            v->mn = (b.flags & Bounds::Lower)?b.lower:initval;
+            v->setdef(initval);
+            v->reset();
+            
+            paramsMap[p->desc->PortNames[i]]=v;
+            paramsList.push_back(p->desc->PortNames[i]);
+            // we don't set DB here - it would confuse plugins
+            // expecting a DB value if we've converted it already
+            
+            float *addr = v->getptr();
+            
             cout << "Connecting port " << p->desc->PortNames[i]
                   << "(" << i << ") with " << addr <<endl;
             (*p->desc->connect_port)(h,i,addr);
             portsConnected[i]=true;
         }
-        if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
+        else if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
             opbufs[i] = new float[BUFSIZE];
             cout << "Connecting OUTPUT port " << p->desc->PortNames[i]
                   << "(" << i << ") with " << opbufs[i] <<endl;
@@ -208,7 +230,7 @@ void PluginInstance::checkPortsConnected(){
                     i,p->desc->PortNames[i],p->label.c_str());
     }
 }
-        
+
 void PluginMgr::deleteInstances(){
     std::vector<PluginInstance *>::iterator it;
     for(it=instances.begin();it!=instances.end();it++){
@@ -226,6 +248,8 @@ static unordered_map<string,PluginData *> plugins;
 /// and whether we have that unique ID already.
 static unordered_map<unsigned long,int> uniqueIDs;
 
+static vector<void *> handles;
+
 void PluginMgr::loadFilesIn(const char *dir){
     DIR *d = opendir(dir);
     if(!dir)throw _("unable to open LADSPA directory %s",dir);
@@ -239,6 +263,7 @@ void PluginMgr::loadFilesIn(const char *dir){
                 const char *fname = ss.str().c_str();
                 void *h = dlopen(fname,RTLD_NOW|RTLD_GLOBAL);
                 if(h){
+                    handles.push_back(h);
                     dlerror(); // clear error
                     LADSPA_Descriptor_Function getdesc = 
                           (LADSPA_Descriptor_Function)dlsym(h,"ladspa_descriptor");
@@ -257,11 +282,17 @@ void PluginMgr::loadFilesIn(const char *dir){
                                 cout << "ID CLASH" << endl;
                         }
                     }
-//                    dlclose(h);
                 }
             }
         }
     }
+}
+
+void PluginMgr::close(){
+    vector<void *>::iterator it;
+    cout << "Closing\n";
+    for(it=handles.begin();it!=handles.end();it++)
+        dlclose(*it);
 }
 
 PluginData *PluginMgr::getPlugin(std::string label){

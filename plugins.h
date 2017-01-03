@@ -5,6 +5,7 @@
  */
 
 #include <string>
+#include <vector>
 #include <unordered_map>
 
 #include "ladspa.h"
@@ -13,8 +14,8 @@
 #ifndef __PLUGINS_H
 #define __PLUGINS_H
 
-using namespace std;
 
+using namespace std;
 // one per actual running plugin (i.e. instantiated and activated)
 class PluginInstance {
     /// throw if a port is not connected, called by activate().
@@ -23,7 +24,10 @@ class PluginInstance {
 public:
     
     /// used for storing param->value associations for saving
+    /// and editing. 
     unordered_map<string,class Value *> paramsMap;
+    /// so we can access by integer
+    vector<string> paramsList;
     
     struct PluginData *p;
     LADSPA_Handle h;
@@ -92,6 +96,8 @@ void loadFilesIn(const char *dir);
 PluginData *getPlugin(std::string label);
 /// delete all instances - AFTER stopping the process thread!
 void deleteInstances();
+/// close all handles
+void close();
 }
 
 #endif /* __PLUGINS_H */

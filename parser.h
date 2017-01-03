@@ -11,16 +11,16 @@
 #include <functional>
 
 extern Tokeniser tok;
-inline void expected(string s){
-    stringstream ss;
+inline void expected(std::string s){
+    std::stringstream ss;
     ss << "Expected " << s << ", got '" << tok.getstring() << "'";
     throw(ss.str());
 }
 
-inline string getnextident(){
+inline std::string getnextident(){
     if(tok.getnext()!=T_IDENT)
         expected("identifier");
-    return string(tok.getstring());
+    return std::string(tok.getstring());
 }
 
 inline float getnextfloat(){
@@ -29,17 +29,21 @@ inline float getnextfloat(){
     return f;
 }
 
-inline string getnextidentorstring(){
+inline std::string getnextidentorstring(){
     int t = tok.getnext();
     if(t!=T_IDENT && t!=T_STRING)
         expected("identifier or string");
-    return string(tok.getstring());
+    return std::string(tok.getstring());
 }
 
 // parses { x,x,x,..x } where x is a parser function.
-inline void parseList(function<void()> f){
+inline void parseList(std::function<void()> f){
     if(tok.getnext()!=T_OCURLY)
         expected("'{'");
+    if(tok.getnext()==T_CCURLY) // empty list?
+        return;
+    tok.rewind(); // wasn't.
+        
     for(;;){
         f();
         int t = tok.getnext();
