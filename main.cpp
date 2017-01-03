@@ -89,7 +89,8 @@ int main(int argc,char *argv[]){
     try {
         loop();
     } catch(string s){
-//        PluginMgr::close();
+        //        PluginMgr::close();
+        Process::shutdown();
         cout << "Fatal error: " << s << endl;
     }
     Process::shutdown();

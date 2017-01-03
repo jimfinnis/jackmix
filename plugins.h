@@ -90,13 +90,14 @@ struct PluginData {
 /// a facility for short names to be assigned to the parameters.
 
 namespace PluginMgr {
-/// load all plugins in this directory and add them
+/// scan a plugin directory and create entries for all plugins
+/// by label (but do not load them).
 void loadFilesIn(const char *dir);
 /// find a plugin, throwing if not found
 PluginData *getPlugin(std::string label);
 /// delete all instances - AFTER stopping the process thread!
 void deleteInstances();
-/// close all handles
+/// close anything left over
 void close();
 }
 

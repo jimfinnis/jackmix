@@ -243,12 +243,27 @@ PluginInstance *PluginData::instantiate(string name){
 }
 
 
-/// these are the ladspa plugins we've already got
+
+// data about the plugin in a file.
+struct PluginFileData{
+    PluginFileData(){}
+        
+    PluginFileData(string fn,int i){
+        filename=fn;
+        index=i;
+    }
+    string filename;
+    int index;
+};
+
+
+/// these are the ladspa plugins which are available - if NULL is
+/// stored, the plugin has not been loaded.
+static unordered_map<string,PluginFileData> pluginFileData;
+/// these are the loaded plugins
 static unordered_map<string,PluginData *> plugins;
 /// and whether we have that unique ID already.
 static unordered_map<unsigned long,int> uniqueIDs;
-
-static vector<void *> handles;
 
 void PluginMgr::loadFilesIn(const char *dir){
     DIR *d = opendir(dir);
@@ -260,10 +275,9 @@ void PluginMgr::loadFilesIn(const char *dir){
             if(!strcmp(s+1,"so")){
                 stringstream ss;
                 ss << dir << "/" << e->d_name;
-                const char *fname = ss.str().c_str();
-                void *h = dlopen(fname,RTLD_NOW|RTLD_GLOBAL);
+                string fname = ss.str();
+                void *h = dlopen(fname.c_str(),RTLD_NOW|RTLD_GLOBAL);
                 if(h){
-                    handles.push_back(h);
                     dlerror(); // clear error
                     LADSPA_Descriptor_Function getdesc = 
                           (LADSPA_Descriptor_Function)dlsym(h,"ladspa_descriptor");
@@ -274,10 +288,11 @@ void PluginMgr::loadFilesIn(const char *dir){
                             const LADSPA_Descriptor *desc = getdesc(i);
                             if(!desc)break;
                             string name = desc->Label;
-                            cout << "Loaded plugin: " << name <<endl;
+                            cout << "Found plugin: " << name << " in " << fname <<endl;
                             if(uniqueIDs.find(desc->UniqueID)==uniqueIDs.end()){
-                                plugins.emplace(name,new PluginData(name,desc));
                                 uniqueIDs.emplace(desc->UniqueID,1);
+                                pluginFileData.emplace(name,PluginFileData(fname.c_str(),i));
+                                plugins[name]=(PluginData *)NULL;
                             } else
                                 cout << "ID CLASH" << endl;
                         }
@@ -288,16 +303,35 @@ void PluginMgr::loadFilesIn(const char *dir){
     }
 }
 
+
+
 void PluginMgr::close(){
-    vector<void *>::iterator it;
-    cout << "Closing\n";
-    for(it=handles.begin();it!=handles.end();it++)
-        dlclose(*it);
 }
 
 PluginData *PluginMgr::getPlugin(std::string label){
     if(plugins.find(label)==plugins.end())
         throw _("cannot find plugin '%s'",label.c_str());
+    
+    if(plugins[label]==NULL){
+        // it's not loaded; do that.
+        PluginFileData& f = pluginFileData[label];
+        void *h = dlopen(f.filename.c_str(),RTLD_NOW|RTLD_GLOBAL);
+        if(h){
+            dlerror(); // clear error
+            LADSPA_Descriptor_Function getdesc = 
+                  (LADSPA_Descriptor_Function)dlsym(h,"ladspa_descriptor");
+            if(!dlerror()){
+                const LADSPA_Descriptor *desc = getdesc(f.index);
+                if(!desc)
+                    throw _("cannot find descriptor %d in file %s",f.index,f.filename.c_str());
+                plugins[label]=new PluginData(label,desc);
+                cout << "Loaded plugin " << label << endl;
+            } else
+                throw _("cannot find getdesc in file %s",f.filename.c_str());
+                
+        } else
+            throw _("cannot open file %s",f.filename.c_str());
+    }
     return plugins[label];
 }
 
