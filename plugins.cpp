@@ -297,6 +297,7 @@ void PluginMgr::loadFilesIn(const char *dir){
                                 cout << "ID CLASH" << endl;
                         }
                     }
+                    dlclose(h);
                 }
             }
         }

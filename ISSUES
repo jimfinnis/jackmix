@@ -1,10 +1,5 @@
 Make sure syntax is up to date.
 
-Free twice on exit. PluginMgr should load the descs and 
-build a map of which plugin lives in which file, closing as
-it goes. It should then dynamically load (and keep open) only
-those files which are required.
-
 Ensure gverb stereo works.
 
 allow amplification (gain>1 in master?)

@@ -740,6 +740,7 @@ void MonitorUI::handleInput(){
                 break;
             default:break;
             }
+            break;
         case Main:
             switch(c){
             case 'p':
