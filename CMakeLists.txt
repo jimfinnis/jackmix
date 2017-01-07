@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 project(jackmix)
 
+add_subdirectory(locals)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -25,5 +27,7 @@ add_custom_command(
 add_executable(jackmix ${SOURCES})
 
 target_link_libraries(jackmix ${JACK_LIBRARIES} ${CURSES_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT} -lm -ldiamondapparatus -lpthread dl)
+    ${CMAKE_THREAD_LIBS_INIT} 
+    locals
+    -lm -ldiamondapparatus -lpthread dl)
 target_compile_options(jackmix PUBLIC "-pthread")

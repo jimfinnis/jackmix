@@ -23,6 +23,9 @@
 #include "process.h"
 #include "plugins.h"
 
+const LADSPA_Descriptor *getLocal(unsigned long i,unsigned long j);
+
+
 using namespace std;
 
 PluginData::PluginData(string l,const LADSPA_Descriptor *d){
@@ -200,9 +203,10 @@ PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128
 }
 
 PluginInstance::~PluginInstance(){
-    if(isActive)
+    if(isActive && p->desc->deactivate)
         (*p->desc->deactivate)(h);
-    (*p->desc->cleanup)(h);
+    if(p->desc->cleanup)
+        (*p->desc->cleanup)(h);
     for(unsigned int i=0;i<p->desc->PortCount;i++){
         if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
             delete opbufs[i];
@@ -212,7 +216,8 @@ PluginInstance::~PluginInstance(){
 
 void PluginInstance::activate(){
     checkPortsConnected();
-    (*p->desc->activate)(h);
+    if(p->desc->activate)
+        (*p->desc->activate)(h);
     isActive=true;
 }
 
@@ -265,6 +270,7 @@ static unordered_map<string,PluginData *> plugins;
 /// and whether we have that unique ID already.
 static unordered_map<unsigned long,int> uniqueIDs;
 
+
 void PluginMgr::loadFilesIn(const char *dir){
     DIR *d = opendir(dir);
     if(!dir)throw _("unable to open LADSPA directory %s",dir);
@@ -302,6 +308,21 @@ void PluginMgr::loadFilesIn(const char *dir){
             }
         }
     }
+    
+    for(unsigned long i=0;;i++){
+        for(unsigned long j=0;;j++){
+            const LADSPA_Descriptor *desc = getLocal(i,j);
+            if(!desc && !j)goto done; // exit if first one empty
+            if(!desc)break; // exit processing this "file"
+            // register
+            cout << "Found local plugin: " << desc->Label << endl;
+            plugins[desc->Label] = new PluginData(desc->Label,desc);
+            
+        }
+    }
+done:
+    ;
+    
 }
 
 

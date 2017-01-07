@@ -380,6 +380,10 @@ void MonitorUI::displayChainList(){
         else
             fx = NULL;
         if(fx){
+            // might get weirded by a chain of chain or effect
+            if(cureffectparam>=(int)fx->paramsList.size())
+                cureffectparam=0;
+    
             for(int i=0;i<(int)fx->paramsList.size();i++){
                 string name = fx->paramsList[i];
                 Value *v = fx->paramsMap[name];

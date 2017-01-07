@@ -9,13 +9,16 @@ macro(add_locals_files)
             OUTPUT ${file}.c
             DEPENDS ${file}
             COMMAND pwd
-            COMMAND perl ../makestublocal.pl ${CMAKE_SOURCE_DIR}/${file}>${file}.c
+            COMMAND perl ${CMAKE_SOURCE_DIR}/locals/makestublocal.pl ${CMAKE_SOURCE_DIR}/locals/${file}>${file}.c
         )
         set(LOCALSFILES ${LOCALSFILES} ${file}.c)
+        message(${LOCALSFILES})
     endforeach(file)
 endmacro(add_locals_files)
 
 add_locals_files(mix.xml)
 
-add_library(locals ${LOCALSFILES})
+# I'd love to generate the list automatically, but argh.
+
+add_library(locals ${LOCALSFILES} filelist.cpp)
 

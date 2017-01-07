@@ -1,5 +1,3 @@
-plugindir "../locals"
-
 chans {
     chan1 : gain smooth 0.9 db 0(gain0) 
             pan 0.5(pan0)
@@ -72,17 +70,23 @@ chain {
     },
     
     testchain2 {
-        out filt:Output, filt:Output
+        out mixl:output,mixr:output
         fx{
-            gverb gverb1
+            gverb gverbl
             in {  input from LEFT  }
             params {  roomsize default },
+
+            gverb gverbr
+            in {  input from RIGHT  }
+            params {  roomsize default },
             
-            lpf filt
-            in {Input from gverb1:"Left output"}
-            params { }
-            }   
-        }   
+            Mix mixl in { in1 from gverbl:"Left output", in2 from gverbr:"Left output" }
+            params {},
+            
+            Mix mixr in { in1 from gverbl:"Right output", in2 from gverbr:"Right output" }
+            params {}
+        }
+    }      
                 
                 
 }

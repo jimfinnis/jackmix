@@ -100,10 +100,10 @@ print <<EOB;
 
 \#include "ladspa.h"
 
-\#ifdef WIN32
-\#define _WINDOWS_DLL_EXPORT_ __declspec(dllexport)
 int bIsFirstTime = 1; 
 static void swh_init(); // forward declaration
+\#ifdef WIN32
+\#define _WINDOWS_DLL_EXPORT_ __declspec(dllexport)
 \#else
 \#define _WINDOWS_DLL_EXPORT_ 
 \#endif
@@ -117,7 +117,7 @@ unless ($global_code) {
 	$global_code = "";
 }
 my $glob_code_start = find_el_line("code");
-print "#line $glob_code_start \"$filename\"\n" if $glob_code_start && $xml_line;
+#print "#line $glob_code_start \"$filename\"\n" if $glob_code_start && $xml_line;
 print "\n$global_code";
 
 my $n = 0;
@@ -133,17 +133,15 @@ for $port (@allports) {
 }
 
 print $globals;
-print <<EOB;
 
+print <<EOB;
 _WINDOWS_DLL_EXPORT_
 const LADSPA_Descriptor *${fileid}_ladspa_descriptor(unsigned long index) {
 
-\#ifdef WIN32
 	if (bIsFirstTime) {
 		swh_init();
 		bIsFirstTime = 0;
 	}
-\#endif
 	switch (index) {
 EOB
 my $pic = 0;
@@ -155,7 +153,7 @@ print "	default:\n		return NULL;\n	}\n}\n\n";
 print $code;
 # Headers for init section
 print <<EOB;
-static swh_init() {
+static void swh_init() {
 	char **port_names;
 	LADSPA_PortDescriptor *port_descriptors;
 	LADSPA_PortRangeHint *port_range_hints;
@@ -245,7 +243,8 @@ sub process_plugin {
 				$cc_marker = "#line $call_start \"$filename\"\n";
  			} else {
 				$cc_marker = "";
-			}
+                        }
+                        $cc_marker = ""; #snark                            
 		} else {
 			$cc_marker = "";
 		}

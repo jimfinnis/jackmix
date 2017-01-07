@@ -23,14 +23,14 @@
       ]]></callback>
     
     <port label="in1" dir="input" type="audio" hint="default_0">
-      <name>In 1</name>
+      <name>in1</name>
     </port>
     <port label="in2" dir="input" type="audio" hint="default_0">
-      <name>In 1</name>
+      <name>in2</name>
     </port>
     
     <port label="output" dir="output" type="audio">
-      <name>Output</name>
+      <name>output</name>
     </port>
     
   </plugin>
