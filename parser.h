@@ -36,6 +36,13 @@ inline std::string getnextidentorstring(){
     return std::string(tok.getstring());
 }
 
+inline std::string getnextstring(){
+    int t = tok.getnext();
+    if(t!=T_STRING)
+        expected("string");
+    return std::string(tok.getstring());
+}
+
 // parses { x,x,x,..x } where x is a parser function.
 inline void parseList(std::function<void()> f){
     if(tok.getnext()!=T_OCURLY)

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<ladspa>
+  <global>
+    <meta name="maker" value="Jim Finnis"/>
+    <meta name="copyright" value="GPL"/>
+    <meta name="fileid" value="LOCALS"/>
+    <meta name="properties" value="HARD_RT_CAPABLE"/>
+    <code>
+    </code>
+  </global>
+  
+  <plugin label="Mix" id="8888" class="MixPlugin">
+    <name>Simple mixer</name>
+    <p>Simple mix for inside effect chains</p>
+    
+    <callback event="run"><![CDATA[
+      unsigned long i;
+      for(i=0;i<sample_count;i++){
+        float tmp = in1[i]+in2[i];
+        output[i]=tmp;
+      }
+      
+      ]]></callback>
+    
+    <port label="in1" dir="input" type="audio" hint="default_0">
+      <name>In 1</name>
+    </port>
+    <port label="in2" dir="input" type="audio" hint="default_0">
+      <name>In 1</name>
+    </port>
+    
+    <port label="output" dir="output" type="audio">
+      <name>Output</name>
+    </port>
+    
+  </plugin>
+</ladspa>

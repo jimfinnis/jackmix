@@ -217,9 +217,16 @@ void parseMaster(){
 /// parses the config file as a single string
 void parseConfigData(const char *s){
     extern void parseStereoChain();
+    extern vector<string> pluginDirs;
     tok.reset(s);
+    string ss;
     for(;;){
         switch(tok.getnext()){
+        case T_PLUGINDIR:
+            ss=getnextstring();
+            PluginMgr::loadFilesIn(ss.c_str());
+            pluginDirs.push_back(ss);
+            break;
         case T_CHANS:
             parseList(parseChan);
             break;

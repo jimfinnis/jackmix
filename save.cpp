@@ -20,6 +20,10 @@
 #include "process.h"
 #include "save.h"
 
+using namespace std;
+
+vector<string> pluginDirs;
+
 void saveMaster(ostream& out){
     out << "master gain " << Process::masterGain->toString() << " ";
     out << "pan " << Process::masterPan->toString() << endl;
@@ -29,6 +33,11 @@ void saveMaster(ostream& out){
 void saveConfig(const char *fn){
     ofstream out;
     out.open(fn);
+    
+    vector<string>::iterator it;
+    for(it = pluginDirs.begin();it!=pluginDirs.end();it++){
+        out << "plugindir \"" << *it << "\"\n";
+    }
     
     saveMaster(out);
     

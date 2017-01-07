@@ -1,12 +1,14 @@
+plugindir "../locals"
+
 chans {
     chan1 : gain smooth 0.9 db 0(gain0) 
             pan 0.5(pan0)
-            send testchain1 gain db 1,
+            send testchain2 gain db 1,
             
     chan2 : gain db -10(gain1)
             pan 0.5(pan1),
             
-    ret   : return testchain1
+    ret   : return testchain2
             gain db -10(gain2)
             pan 0.5(pan2)
             
@@ -76,7 +78,7 @@ chain {
             in {  input from LEFT  }
             params {  roomsize default },
             
-            buttlow_iir filt
+            lpf filt
             in {Input from gverb1:"Left output"}
             params { }
             }   

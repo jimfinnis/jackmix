@@ -41,6 +41,7 @@ return: T_RETURN
 prefade: T_PREFADE
 postfade: T_POSTFADE
 chain: T_CHAIN
+plugindir: T_PLUGINDIR
 params: T_PARAMS
 min: T_MIN
 max: T_MAX

@@ -1,4 +1,6 @@
-program = { channels | effectloops | ctrls };
+program = [plugindirs] { channels | effectloops | ctrls };
+
+plugindirs = { 'plugindir' dirname }
 
 channels = 'chans' '{' channellist '}';
 channellist = channel
