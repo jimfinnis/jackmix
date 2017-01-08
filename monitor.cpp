@@ -44,8 +44,6 @@ void MonitorUI::displayStatus(){
     }
 }
 
-
-
 MonitorUI::MonitorUI(){
     initscr();
     keypad(stdscr,TRUE);
@@ -609,6 +607,7 @@ void MonitorUI::display(MonitorData *d){
     if(!d)d=gentestdat();
     erase();
     
+    
     helpScreen = MainHelp;
     
     if(inHelp){
@@ -631,7 +630,10 @@ void MonitorUI::display(MonitorData *d){
         }
     }
     
-    displayStatus();
+    if(lineEdit.getState()==Running)
+        lineEdit.display(h-1,0);
+    else 
+        displayStatus();
     
     lastDisplayed=*d;
     
@@ -641,7 +643,9 @@ void MonitorUI::display(MonitorData *d){
 void MonitorUI::handleInput(){
     PluginInstance *fx;
     
-    if(inHelp){
+    if(lineEdit.getState()==Running){
+        lineEdit.handleKey(getch());
+    } else if(inHelp){
         if(getch()!=ERR)inHelp=false;
     } else {
         int c = getch();
@@ -747,6 +751,9 @@ void MonitorUI::handleInput(){
             break;
         case Main:
             switch(c){
+            case 't':
+                lineEdit.begin("Wibble");
+                break;
             case 'p':
                 saveConfig("save");break;
             case 'c':case 'C':

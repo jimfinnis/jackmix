@@ -37,8 +37,17 @@ static const char *MainHelpCol1[] = {
 
 static const char *MainHelpCol2[] = {
 //   0123456789012345678901234567890
-    "[        Chain list mode]",
+    "[        Chain mode]",
     "{ENTER}    - return to main mode",
+    "{TAB}      - list->chain->effect",
+    "[     Chain mode: list]",
+    "{UP/DOWN}  - select chain",
+    "[     Chain mode: chain]",
+    "{UP/DOWN}  - select effect",
+    "[     Chain mode: effect]",
+    "{UP/DOWN}  - select parameter",
+    "{LFT/RGT}  - change parameter",
+    
     NULL
 };
 

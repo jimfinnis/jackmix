@@ -16,7 +16,7 @@ include_directories(${JACK_INCLUDE_DIR} ${CURSES_INCLUDE_DIR}
 add_definitions(${JACK_DEFINITIONS} -Wall)
 
 set(SOURCES main.cpp tokeniser.cpp tokens.cpp ctrl.cpp value.cpp
-    parser.cpp save.cpp process.cpp
+    parser.cpp save.cpp process.cpp lineedit.cpp
     channel.cpp diamond.cpp fx.cpp plugins.cpp monitor.cpp)
 
 add_custom_command(

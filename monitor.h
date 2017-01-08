@@ -16,6 +16,7 @@
 
 #include "channel.h"
 #include "timeutils.h"
+#include "lineedit.h"
 
 using namespace std;
 
@@ -112,6 +113,7 @@ class MonitorUI {
     string statusMsg;
     bool statusShowing=false;
     Time statusTimeToEnd;
+    LineEdit lineEdit;
     
     void setStatus(string s,double t); // msg, time to show
     void displayStatus();
