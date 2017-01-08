@@ -27,6 +27,7 @@ static const char *MainHelpCol1[] = {
     "{s}        - solo channel",
     "{m}        - mute channel",
     "{ENTER}    - edit channel",
+    "{w}        - write config to file",
     "",
     "[        Channel edit mode]",
     "{ENTER}    - return to main mode",

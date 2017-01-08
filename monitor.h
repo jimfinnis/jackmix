@@ -117,6 +117,7 @@ class MonitorUI {
     
     void setStatus(string s,double t); // msg, time to show
     void displayStatus();
+    void handleLineEditDone();
     
     enum UIState {
         Main,ChanZoom,ChainList

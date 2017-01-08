@@ -12,6 +12,8 @@
 #include <signal.h>
 #include <string>
 #include <iostream>
+#include <getopt.h>
+#include <iostream>
 
 #include "channel.h"
 #include "ctrl.h"
@@ -26,6 +28,14 @@
 
 #include "process.h"
 
+using namespace std;
+
+// command line options
+struct option opts[]={
+    {"nogui",no_argument,NULL,'n'},
+    {NULL,0,NULL,0}
+};
+
 extern void parseConfig(const char *filename);
 
 
@@ -35,18 +45,28 @@ extern void parseConfig(const char *filename);
  *
  */
 
+void poll(){
+    pollDiamond();
+}
+    
 
 void loop(){
     MonitorUI mon;
     while(1){
         usleep(100000);
-        
+        poll();
         static MonitorData mdat;
         if(Process::pollMonRing(&mdat))
             mon.display(&mdat);
-        
-        pollDiamond();
         mon.handleInput();
+    }
+}
+void noguiloop(){
+    while(1){
+        usleep(100000);
+        static MonitorData mdat;
+        Process::pollMonRing(&mdat);
+        poll();
     }
 }
 
@@ -54,12 +74,34 @@ void shutdown(int s){
     throw _("abort");
 }
 
+void usage(){
+    cerr << "usage:\n"
+          << "jackmix [-n] [configfile]\n";
+}
+
 int main(int argc,char *argv[]){
-    
     signal(SIGINT,shutdown);
     signal(SIGQUIT,shutdown);
     
+    bool nogui=false;
+    
     try {
+        const char *filename="config";
+        for(;;){
+            int optind=0;
+            char c = getopt_long(argc,argv,"n",opts,&optind);
+            if(c<0)break;
+            switch(c){
+            case 'n':
+                nogui=true;
+                break;
+            default:
+                usage();
+                throw _("incorrect usage");
+            }
+        }
+        if(optind<argc)
+            filename = argv[optind];
         // initialise data structures
         Process::init();
         // initialise comms
@@ -72,7 +114,7 @@ int main(int argc,char *argv[]){
         //PluginMgr::loadFilesIn("./testpl");
         
         // parse the config
-        parseConfig("config");
+        parseConfig(filename);
         Ctrl::checkAllCtrlsForSource();
         Channel::resolveAllChannelChains();
     } catch (const char *s){
@@ -87,7 +129,8 @@ int main(int argc,char *argv[]){
     Process::parsedAndReady=true;
     
     try {
-        loop();
+        if(nogui)noguiloop();
+        else loop();
     } catch(string s){
         //        PluginMgr::close();
         Process::shutdown();

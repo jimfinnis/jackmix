@@ -24,6 +24,13 @@
 #define PAIR_REDTEXT 6
 #define PAIR_BLUETEXT 7
 
+// enumeration of situations when we are waiting for a line
+// of text
+enum LineRequestType {None,SaveFile};
+static LineRequestType lineRequestType=None;
+
+
+
 static bool inHelp=false;
 
 void MonitorUI::setStatus(string s,double t){
@@ -640,11 +647,33 @@ void MonitorUI::display(MonitorData *d){
     refresh();
 }
 
+void MonitorUI::handleLineEditDone(){
+    string s = lineEdit.consume();
+    switch(lineRequestType){
+    case SaveFile: 
+        saveConfig(s.c_str());
+        setStatus("Saved.",2);
+        break;
+    default:break;
+    }
+}
+
 void MonitorUI::handleInput(){
     PluginInstance *fx;
     
     if(lineEdit.getState()==Running){
         lineEdit.handleKey(getch());
+        // handle line editor returne
+        switch(lineEdit.getState()){
+        case Aborted:
+            lineEdit.consume();
+            lineRequestType=None;
+            break;
+        case Finished:
+            handleLineEditDone();
+            break;
+        default:break;
+        }
     } else if(inHelp){
         if(getch()!=ERR)inHelp=false;
     } else {
@@ -751,11 +780,10 @@ void MonitorUI::handleInput(){
             break;
         case Main:
             switch(c){
-            case 't':
-                lineEdit.begin("Wibble");
+            case 'w':
+                lineEdit.begin("Filename");
+                lineRequestType = SaveFile;
                 break;
-            case 'p':
-                saveConfig("save");break;
             case 'c':case 'C':
                 gotoState(ChainList);
                 regenChainData(curparam);

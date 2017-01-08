@@ -271,7 +271,7 @@ void parseConfig(const char *file){
             free(fbuf);
             
         } else 
-            throw _("cannot open config file");
+            throw _("cannot open config file '%s'",file);
     } catch(string s){
         stringstream ss;
         ss << "at line " << tok.getline() << ": " << s;
