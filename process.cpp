@@ -135,6 +135,14 @@ void Process::processMonitorCommand(MonitorCommand& c){
     case ChangeEffectParam:
         c.vp->nudge(c.v);
         break;
+    case DelSend:
+        // awkward.
+        c.chan->removeChainInfo(c.arg0);
+        break;
+    case TogglePrePost:
+        c.chan->chains[c.arg0].postfade=
+              !c.chan->chains[c.arg0].postfade;
+        break;
     }
 }
 

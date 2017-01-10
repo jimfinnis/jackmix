@@ -135,9 +135,19 @@ public:
             inputchans.push_back(this);
     }
     
+    // add a chain send
     void addChainInfo(std::string name,Value *v,bool postfade){
         chains.push_back(ChainFeed(v,postfade));
         chainNames.push_back(name);
+    }
+    
+    // remove a chain send or nothing if there is no such send.
+    // DO NOT CALL FROM MAIN THREAD.
+    void removeChainInfo(unsigned int i){
+        if(i<chainNames.size()){
+            chainNames.erase(chainNames.begin()+i);
+            chains.erase(chains.begin()+i);
+        }
     }
     
     static void resolveAllChannelChains(){

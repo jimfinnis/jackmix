@@ -33,6 +33,11 @@ static const char *MainHelpCol1[] = {
     "{ENTER}    - return to main mode",
     "{UP/DOWN}  - switch parameter",
     "{LFT/RGT}  - change parameter",
+    "{s}        - solo channel",
+    "{m}        - mute channel",
+    "{DEL}      - remove send",
+    "{p}        - toggle send pre/post",
+    "{a}        - add send",
     NULL
 };
 

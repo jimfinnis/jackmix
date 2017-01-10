@@ -118,7 +118,6 @@ void Channel::mix(float *__restrict leftout,
                 it->chain->addStereo(left+offset,right+offset,gain);
         }
     }
-    
 }
 
 

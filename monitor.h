@@ -50,7 +50,7 @@ struct MonitorData {
 
 enum MonitorCommandType {ChangeGain,ChangePan,ChangeMasterGain,
           ChangeMasterPan,ChangeSendGain,ChannelMute,ChannelSolo,
-          ChangeEffectParam
+          ChangeEffectParam,DelSend,TogglePrePost
 };
 
 struct MonitorCommand {
@@ -108,16 +108,41 @@ class MonitorUI {
     // cleared by state changes, reflects currently edited param in
     // some states.
     int curparam=0; 
+    // current send - -ve if not valid
+    int cursend=-1;
+    // current channel or NULL
+    Channel *curchanptr=NULL;
+    
+    typedef void (MonitorUI::*KeyMethod)(int c);
+    // method to call if we get a key or NULL if
+    // we're not waiting for one
+    KeyMethod keyMethod=NULL;
+    std::string keyString; // string to show if asking for key
+    
+    void getKey(std::string s,KeyMethod m){ // prompt, method to call
+        keyString = s;
+        keyMethod = m;
+    }
+    
+    void confirmDeleteSend(int key);
     
     // status line
     string statusMsg;
     bool statusShowing=false;
     Time statusTimeToEnd;
     LineEdit lineEdit;
+    typedef void (MonitorUI::*LineMethod)(std::string);
+    LineMethod lineFinishedMethod=NULL;
+    
+    void lineFinishedSaveFile(std::string s);
+    
+    void beginLineEdit(std::string s, LineMethod m){
+        lineEdit.begin(s);
+        lineFinishedMethod = m;
+    }
     
     void setStatus(string s,double t); // msg, time to show
     void displayStatus();
-    void handleLineEditDone();
     
     enum UIState {
         Main,ChanZoom,ChainList

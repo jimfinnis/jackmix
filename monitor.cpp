@@ -24,13 +24,6 @@
 #define PAIR_REDTEXT 6
 #define PAIR_BLUETEXT 7
 
-// enumeration of situations when we are waiting for a line
-// of text
-enum LineRequestType {None,SaveFile};
-static LineRequestType lineRequestType=None;
-
-
-
 static bool inHelp=false;
 
 void MonitorUI::setStatus(string s,double t){
@@ -169,14 +162,16 @@ void MonitorUI::displayMain(MonitorData *d){
         firstcol = curchan-numcols/2;
     }
     
-    displayChan(0,&d->master,curchan==-1);
     
+    displayChan(0,&d->master,curchan==-1);
+    curchanptr=NULL;
     for(int i=0;i<numcols;i++){
         ChanMonData *c;
         int chanidx = i+firstcol;
-        if(chanidx>=0 && chanidx<(int)d->numchans)
+        if(chanidx>=0 && chanidx<(int)d->numchans){
             c=&d->chans[chanidx];
-        else
+            if(chanidx==curchan)curchanptr=c->chan;
+        } else
             c=NULL;
         displayChan(i+1,c,chanidx==curchan);
     }
@@ -230,24 +225,28 @@ void MonitorUI::displayChan(int i,ChanMonData* c,bool cur){
 void MonitorUI::displayChanZoom(MonitorData *d){
     title("CHANNEL EDIT");
     attrset(COLOR_PAIR(PAIR_HILIGHT)|A_BOLD);
-    if(curchan<0 || curchan>=d->numchans)
+    if(curchan<0 || curchan>=d->numchans){
         mvprintw(0,0,"Invalid channel");
-    else {
+        curchanptr = NULL;
+    } else {
         ChanMonData *c = d->chans+curchan;
-        Channel *ch = c->chan;
+        curchanptr = c->chan;
         mvprintw(0,0,"Channel %s",c->name);
         
-        int numsends = (int)ch->chains.size();
+        int numsends = (int)curchanptr->chains.size();
         // it's ugly checking this here, but it's a safeish
         // and convenient place
         if(curparam-2 >= numsends)
             curparam = 1+numsends;
         
-        if(ch->isMute()){
+        cursend = curparam-2; // currently edited send
+        
+        
+        if(curchanptr->isMute()){
             attrset(COLOR_PAIR(PAIR_BLUETEXT)|A_BOLD);
             mvaddstr(0,20,"MUTE");
         }
-        if(ch->isSolo()){
+        if(curchanptr->isSolo()){
             attrset(COLOR_PAIR(PAIR_REDTEXT)|A_BOLD);
             mvaddstr(0,25,"SOLO");
         }
@@ -264,18 +263,17 @@ void MonitorUI::displayChanZoom(MonitorData *d){
         drawHorzBar(8,10,1,ww,c->gain,NULL,Green,curparam==0);
         drawHorzBar(10,10,1,ww,c->pan,NULL,Pan,curparam==1);
         
-        for(unsigned int i=0;i<ch->chains.size();i++){
-            int cc = curparam-2;
+        for(unsigned int i=0;i<curchanptr->chains.size();i++){
             int y = i*3+15;
             int ww = w-20;
-            ChainFeed& f = ch->chains[i];
+            ChainFeed& f = curchanptr->chains[i];
             attrset(COLOR_PAIR(0));
-            mvaddstr(y,0,ch->chainNames[i].c_str());
+            mvaddstr(y,0,curchanptr->chainNames[i].c_str());
             
             mvaddstr(y,20,f.postfade?"POSTFADE":"PREFADE");
             
-            
-            drawHorzBar(y+1,10,1,ww,f.gain->get(),f.gain,Green,cc==(int)i);
+            drawHorzBar(y+1,10,1,ww,f.gain->get(),f.gain,Green,
+                        cursend==(int)i);
         }
     }
     
@@ -553,10 +551,9 @@ void MonitorUI::command(MonitorCommandType cmd,float v,Channel *c,int i){
 }
 
 void MonitorUI::commandGainNudge(float v){
-    if(curchan>=0 && curchan < lastDisplayed.numchans){
-        Channel *c = lastDisplayed.chans[curchan].chan;
-        if(c->gain->db)v*=0.1f;
-        command(MonitorCommandType::ChangeGain,v,c);
+    if(curchanptr){
+        if(curchanptr->gain->db)v*=0.1f;
+        command(MonitorCommandType::ChangeGain,v,curchanptr);
     } else {
         v*=0.1f; // master gain is always log
         command(MonitorCommandType::ChangeMasterGain,v);
@@ -564,21 +561,19 @@ void MonitorUI::commandGainNudge(float v){
 }    
 
 void MonitorUI::commandPanNudge(float v){
-    if(curchan>=0 && curchan < lastDisplayed.numchans){
-        Channel *c = lastDisplayed.chans[curchan].chan;
-        command(MonitorCommandType::ChangePan,v,c);
+    if(curchanptr){
+        command(MonitorCommandType::ChangePan,v,curchanptr);
     } else 
         command(MonitorCommandType::ChangeMasterPan,v,NULL);
 }
 
 void MonitorUI::commandSendGainNudge(float v){
-    if(curchan>=0 && curchan < lastDisplayed.numchans && curparam>=2){
-        int send = curparam-2;
-        Channel *c = lastDisplayed.chans[curchan].chan;
-        if(send < (int)c->chains.size()){
-            ChainFeed& f = c->chains[send];
+    if(curchanptr){
+        if(cursend < (int)curchanptr->chains.size()){
+            ChainFeed& f = curchanptr->chains[cursend];
             if(f.gain->db)v*=0.1f;
-            command(MonitorCommandType::ChangeSendGain,v,c,send);
+            command(MonitorCommandType::ChangeSendGain,v,
+                    curchanptr,cursend);
         }
     }    
 }
@@ -602,9 +597,8 @@ void MonitorUI::commandParamNudge(float v){
 }
 
 void MonitorUI::simpleChannelCommand(MonitorCommandType cmd){
-    if(curchan>=0 && curchan < lastDisplayed.numchans){
-        Channel *c = lastDisplayed.chans[curchan].chan;
-        command(cmd,0,c);
+    if(curchanptr){
+        command(cmd,0,curchanptr);
     }
 }
 
@@ -637,9 +631,12 @@ void MonitorUI::display(MonitorData *d){
         }
     }
     
-    if(lineEdit.getState()==Running)
+    if(keyMethod){
+        attrset(COLOR_PAIR(0)|A_BOLD);
+        mvaddstr(h-1,0,keyString.c_str());
+    } else if(lineEdit.getState()==Running)
         lineEdit.display(h-1,0);
-    else 
+    else
         displayStatus();
     
     lastDisplayed=*d;
@@ -647,30 +644,44 @@ void MonitorUI::display(MonitorData *d){
     refresh();
 }
 
-void MonitorUI::handleLineEditDone(){
-    string s = lineEdit.consume();
-    switch(lineRequestType){
-    case SaveFile: 
-        saveConfig(s.c_str());
-        setStatus("Saved.",2);
-        break;
-    default:break;
+// callbacks for line editing or key get
+
+void MonitorUI::lineFinishedSaveFile(std::string s){
+    saveConfig(s.c_str());
+    setStatus("Saved.",2);
+}
+
+void MonitorUI::confirmDeleteSend(int key){
+    if(key == 'y' || key == 'Y'){
+        if(curchanptr){
+            Process::writeCmd(MonitorCommand(
+                                             MonitorCommandType::DelSend,
+                                             0,curchanptr,
+                                             cursend));
+        }
     }
 }
+
+
 
 void MonitorUI::handleInput(){
     PluginInstance *fx;
     
-    if(lineEdit.getState()==Running){
+    if(keyMethod!=NULL){
+        int c = getch();
+        if(c!=ERR){
+            (this->*keyMethod)(c);
+            keyMethod=NULL;
+        }
+    } else if(lineEdit.getState()==Running){
         lineEdit.handleKey(getch());
         // handle line editor returne
         switch(lineEdit.getState()){
         case Aborted:
             lineEdit.consume();
-            lineRequestType=None;
             break;
         case Finished:
-            handleLineEditDone();
+            (this->*lineFinishedMethod)(lineEdit.consume());
             break;
         default:break;
         }
@@ -682,6 +693,20 @@ void MonitorUI::handleInput(){
         switch(state){
         case ChanZoom:
             switch(c){
+            case 'a':case 'A':
+#pragma message "Show a list of chains here to select from
+            case KEY_DC: // delete feed
+                if(cursend>=0)
+                    getKey("Are you sure (y/N)?",&MonitorUI::confirmDeleteSend);
+                break;
+            case 'p':case 'P':
+                if(curchanptr && cursend>=0){
+                    Process::writeCmd(MonitorCommand(
+                                                     MonitorCommandType::TogglePrePost,
+                                                     0,curchanptr,
+                                                     cursend));
+                }
+                break;
             case 'q':case 'Q':
             case 10: gotoPrevState();break;
             case 'm':case 'M':
@@ -781,8 +806,7 @@ void MonitorUI::handleInput(){
         case Main:
             switch(c){
             case 'w':
-                lineEdit.begin("Filename");
-                lineRequestType = SaveFile;
+                beginLineEdit("Filename",&MonitorUI::lineFinishedSaveFile);
                 break;
             case 'c':case 'C':
                 gotoState(ChainList);
