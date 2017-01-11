@@ -51,8 +51,11 @@ struct MonitorData {
 
 enum MonitorCommandType {ChangeGain,ChangePan,ChangeMasterGain,
           ChangeMasterPan,ChangeSendGain,ChannelMute,ChannelSolo,
-          ChangeEffectParam,DelSend,TogglePrePost
+          ChangeEffectParam,DelSend,TogglePrePost,AddSend
 };
+
+// this is a struct, not a union, because a lot of things can appear here together.
+// Yes, I could tidy it up.
 
 struct MonitorCommand {
     MonitorCommand(){}
@@ -70,11 +73,18 @@ struct MonitorCommand {
         v = f;
     }
     
+    MonitorCommand(MonitorCommandType c,Channel *ch,std::string str){
+        cmd = c;
+        s = str;
+        chan = ch;
+    }
+    
     MonitorCommandType cmd;
     Channel *chan;
     float v;
     Value *vp;
     int arg0;
+    std::string s;
 };
 
 
@@ -154,7 +164,7 @@ class MonitorUI {
     
     // callback methods for editors
     void lineFinishedSaveFile(std::string s);
-    void stringFinishedAddChain(std::string s){}
+    void stringFinishedAddChain(std::string s);
     
     void setStatus(string s,double t); // msg, time to show
     void displayStatus();

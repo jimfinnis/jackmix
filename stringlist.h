@@ -38,7 +38,10 @@ public:
     // will return data and reset state.
     std::string consume(){
         state = Idle;
-        return list[cursor];
+        if(listFiltered.size() && cursor<listFiltered.size())
+            return listFiltered[cursor];
+        else
+            return "";
     }
     void display();
     

@@ -48,8 +48,11 @@ struct ChainInterface {
     
     static void zeroAllInputs();
     
-    // run all effects in the order in which they were created.
+    // run all effect chains in the order in which they were created.
     static void runAll(unsigned int n);
+    
+    // get names of all chains
+    static std::vector<std::string> getNames();
     
     
     void save(std::ostream &out,std::string name);

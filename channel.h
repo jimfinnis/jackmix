@@ -17,10 +17,12 @@
 
 // info describing how a chain is fed
 struct ChainFeed {
-    // ctor just sets up gain and postfade, chain is set later
-    ChainFeed(Value *v,bool pf){
+    // from the parser, ctor will just sets up gain and postfade,
+    // chain is set later. In the monitor, chain is set up too.
+    ChainFeed(Value *v,bool pf,ChainInterface *c){
         gain = v;
         postfade = pf;
+        chain = c;
     }
     Value *gain;
     ChainInterface *chain;
@@ -81,10 +83,8 @@ class Channel {
     
 public:
     Value *pan,*gain;
-    // after parsing, is traversed to build the actual chain pointers.
-    // Is then not used except for saving and monitoring.
+    // names of chains, same indexing as "chains"
     std::vector<std::string> chainNames;
-    
     // pointers to actual chains, built from chainNames after parsing.
     std::vector<ChainFeed> chains;
     
@@ -135,9 +135,9 @@ public:
             inputchans.push_back(this);
     }
     
-    // add a chain send
-    void addChainInfo(std::string name,Value *v,bool postfade){
-        chains.push_back(ChainFeed(v,postfade));
+    // add a chain send - if from the parser, leave chain NULL to be resolved.
+    void addChainInfo(std::string name,Value *v,bool postfade,ChainInterface *c=NULL){
+        chains.push_back(ChainFeed(v,postfade,c));
         chainNames.push_back(name);
     }
     

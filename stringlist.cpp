@@ -48,10 +48,10 @@ void StringList::display(){
         clrtoeol();
     }
     
-    if(prefix.size()){
-        attrset(COLOR_PAIR(0)|A_BOLD);
+    attrset(COLOR_PAIR(0)|A_BOLD);
+    mvaddstr(h+1,0,prompt.c_str()); // overwrites status line
+    if(prefix.size())
         mvaddstr(h,x,prefix.c_str());
-    }
               
 }
 
@@ -85,7 +85,7 @@ EditState StringList::handleKey(int k){
         if(cursor>pagelen)
             cursor-=pagelen;
         break;
-    case 7:case 'q':case 'Q':
+    case 7:
         state=Aborted;
         break;
     case 11: // ctrl-k

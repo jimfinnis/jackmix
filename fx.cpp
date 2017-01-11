@@ -277,6 +277,17 @@ ChainInterface *ChainInterface::find(std::string name){
     return &chains[name];
 }
 
+vector<string> ChainInterface::getNames(){
+    vector<string> names;
+    unordered_map<string,Chain>::iterator it;
+    for(it=chains.begin();it!=chains.end();it++){
+        names.push_back(it->first);
+    }
+    return names;
+}
+
+
+
 void ChainInterface::zeroAllInputs(){
     unordered_map<string,Chain>::iterator it;
     for(it=chains.begin();it!=chains.end();it++){

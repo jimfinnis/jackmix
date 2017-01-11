@@ -136,9 +136,15 @@ void Process::processMonitorCommand(MonitorCommand& c){
         c.vp->nudge(c.v);
         break;
     case DelSend:
-        // awkward.
+        // awkward. Will leave a dangling value. No biggie.
         c.chan->removeChainInfo(c.arg0);
         break;
+    case AddSend:{
+        Value *v = new Value();
+        v->setdb()->setrange(-60,0)->setdef(0)->reset();
+        c.chan->addChainInfo(c.s,v,false,ChainInterface::find(c.s));
+        break;
+    }
     case TogglePrePost:
         c.chan->chains[c.arg0].postfade=
               !c.chan->chains[c.arg0].postfade;
@@ -180,6 +186,7 @@ void Process::subproc(float *left,float *right,int offset,int n){
 
 int Process::callbackProcess(jack_nframes_t nframes, void *arg){
     if(!parsedAndReady)return 0;
+    
     // every now and then, read data out of the ring buffers and update
     // the values (which use LPFs).
     Ctrl::pollAllCtrlRings();
