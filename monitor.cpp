@@ -13,16 +13,10 @@
 #include "process.h"
 #include "monitor.h"
 #include "version.h"
+#include "colours.h"
+
 
 #include "help.h"
-
-#define PAIR_RED 1
-#define PAIR_YELLOW 2
-#define PAIR_GREEN 3
-#define PAIR_HILIGHT 4
-#define PAIR_DARK 5
-#define PAIR_REDTEXT 6
-#define PAIR_BLUETEXT 7
 
 static bool inHelp=false;
 
@@ -634,7 +628,9 @@ void MonitorUI::display(MonitorData *d){
     if(keyMethod){
         attrset(COLOR_PAIR(0)|A_BOLD);
         mvaddstr(h-1,0,keyString.c_str());
-    } else if(lineEdit.getState()==Running)
+    } else if(stringList.getState()==Running)
+        stringList.display();
+    else if(lineEdit.getState()==Running)
         lineEdit.display(h-1,0);
     else
         displayStatus();
@@ -673,6 +669,17 @@ void MonitorUI::handleInput(){
             (this->*keyMethod)(c);
             keyMethod=NULL;
         }
+    } else if(stringList.getState()==Running){
+        stringList.handleKey(getch());
+        switch(stringList.getState()){
+        case Aborted:
+            stringList.consume();
+            break;
+        case Finished:
+            (this->*stringFinishedMethod)(stringList.consume());
+            break;
+        default:break;
+        }
     } else if(lineEdit.getState()==Running){
         lineEdit.handleKey(getch());
         // handle line editor returne
@@ -694,10 +701,145 @@ void MonitorUI::handleInput(){
         case ChanZoom:
             switch(c){
             case 'a':case 'A':
-#pragma message "Show a list of chains here to select from
-            case KEY_DC: // delete feed
+#pragma message "Show a list of chains here to select from"
+                {
+                    vector<string> test;
+test.push_back("tuneful");
+test.push_back("tunefully");
+test.push_back("tuneless");
+test.push_back("tunelessly");
+test.push_back("tuner");
+test.push_back("tuner's");
+test.push_back("tuners");
+test.push_back("tunes");
+test.push_back("tungsten");
+test.push_back("tungsten's");
+test.push_back("tunic");
+test.push_back("tunic's");
+test.push_back("tunics");
+test.push_back("tuning");
+test.push_back("tunnel");
+test.push_back("tunnel's");
+test.push_back("tunneled");
+test.push_back("tunneling");
+test.push_back("tunnelings");
+test.push_back("tunnelled");
+test.push_back("tunnelling");
+test.push_back("tunnels");
+test.push_back("tunnies");
+test.push_back("tunny");
+test.push_back("tunny's");
+test.push_back("tuns");
+test.push_back("turban");
+test.push_back("turban's");
+test.push_back("turbans");
+test.push_back("turbid");
+test.push_back("turbine");
+test.push_back("turbine's");
+test.push_back("turbines");
+test.push_back("turbojet");
+test.push_back("turbojet's");
+test.push_back("turbojets");
+test.push_back("turboprop");
+test.push_back("turboprop's");
+test.push_back("turboprops");
+test.push_back("turbot");
+test.push_back("turbot's");
+test.push_back("turbots");
+test.push_back("turbulence");
+test.push_back("turbulence's");
+test.push_back("turbulent");
+test.push_back("turbulently");
+test.push_back("turd");
+test.push_back("turd's");
+test.push_back("turds");
+test.push_back("tureen");
+test.push_back("tureen's");
+test.push_back("tureens");
+test.push_back("turf");
+test.push_back("turf's");
+test.push_back("turfed");
+test.push_back("turfing");
+test.push_back("turfs");
+test.push_back("turgid");
+test.push_back("turgidity");
+test.push_back("turgidity's");
+test.push_back("turgidly");
+test.push_back("turkey");
+test.push_back("turkey's");
+test.push_back("turkeys");
+test.push_back("turmeric");
+test.push_back("turmeric's");
+test.push_back("turmerics");
+test.push_back("turmoil");
+test.push_back("turmoil's");
+test.push_back("turmoils");
+test.push_back("turn");
+test.push_back("turn's");
+test.push_back("turnabout");
+test.push_back("turnabout's");
+test.push_back("turnabouts");
+test.push_back("turnaround");
+test.push_back("turnaround's");
+test.push_back("turnarounds");
+test.push_back("turncoat");
+test.push_back("turncoat's");
+test.push_back("turncoats");
+test.push_back("turned");
+test.push_back("turner");
+test.push_back("turner's");
+test.push_back("turners");
+test.push_back("turning");
+test.push_back("turnip");
+test.push_back("turnip's");
+test.push_back("turnips");
+test.push_back("turnkey");
+test.push_back("turnkey's");
+test.push_back("turnkeys");
+test.push_back("turnoff");
+test.push_back("turnoff's");
+test.push_back("turnoffs");
+test.push_back("turnout");
+test.push_back("turnout's");
+test.push_back("turnouts");
+test.push_back("turnover");
+test.push_back("turnover's");
+test.push_back("turnovers");
+test.push_back("turnpike");
+test.push_back("turnpike's");
+test.push_back("turnpikes");
+test.push_back("turns");
+test.push_back("turnstile");
+test.push_back("turnstile's");
+test.push_back("turnstiles");
+test.push_back("turntable");
+test.push_back("turntable's");
+test.push_back("turntables");
+test.push_back("turpentine");
+test.push_back("turpentine's");
+test.push_back("turpitude");
+test.push_back("turpitude's");
+test.push_back("turquoise");
+test.push_back("turquoise's");
+test.push_back("turquoises");
+test.push_back("turret");
+test.push_back("turret's");
+test.push_back("turrets");
+test.push_back("turtle");
+test.push_back("turtle's");
+test.push_back("turtledove");
+test.push_back("turtledove's");
+test.push_back("turtledoves");
+test.push_back("turtleneck");
+test.push_back("turtleneck's");
+test.push_back("turtlenecks");
+test.push_back("turtles");
+                    beginStringList("string",test,&MonitorUI::stringFinishedAddChain);
+                }
+                break;
+            case KEY_DC: // delete send
                 if(cursend>=0)
-                    getKey("Are you sure (y/N)?",&MonitorUI::confirmDeleteSend);
+                    getKey("Delete send: are you sure (y/N)?",&MonitorUI::confirmDeleteSend);
                 break;
             case 'p':case 'P':
                 if(curchanptr && cursend>=0){

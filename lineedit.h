@@ -9,35 +9,27 @@
 
 #include <string>
 
-enum LineEditState {
-    Idle,Running,Aborted,Finished
-};
-          
+#include "editor.h"
 
-class LineEdit {
-    std::string prompt;
+class LineEdit : public Editor {
     std::string data;
     unsigned int cursor;
-    LineEditState state = Idle;
 public:
     void begin(std::string p){
-        prompt = p;
+        Editor::begin(p);
         data = "";
-        state=Running;
         cursor=0;
     }
     
-    // call when a thing has noticed that its string read is
-    // Finished - will return data and reset state.
+    // call when a thing has noticed that we're done.
+    // will return data and reset state.
     std::string consume(){
         state = Idle;
         return data;
     }
-    
-    LineEditState getState(){return state;}
     void display(int y,int x);
     
-    LineEditState handleKey(int k);
+    EditState handleKey(int k);
 };
           
     

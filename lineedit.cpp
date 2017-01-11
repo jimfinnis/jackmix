@@ -8,6 +8,7 @@
 
 #include <sstream>
 #include <ncurses.h>
+#include "colours.h"
 
 using namespace std;
 
@@ -29,7 +30,7 @@ void LineEdit::display(int y,int x){
         
 }
 
-LineEditState LineEdit::handleKey(int k){
+EditState LineEdit::handleKey(int k){
     unsigned int len = data.size();
     switch(k){
     case 2: // ctrl-b

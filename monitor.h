@@ -17,6 +17,7 @@
 #include "channel.h"
 #include "timeutils.h"
 #include "lineedit.h"
+#include "stringlist.h"
 
 using namespace std;
 
@@ -130,16 +131,30 @@ class MonitorUI {
     string statusMsg;
     bool statusShowing=false;
     Time statusTimeToEnd;
+    
+    typedef void (MonitorUI::*StringMethod)(std::string);
+    
+    // string list selection
+    StringList stringList;
+    StringMethod stringFinishedMethod=NULL;
+    void beginStringList(std::string p,
+                         std::vector<std::string>& l, StringMethod m){
+        stringList.begin(p,l);
+        stringFinishedMethod = m;
+    }
+    
+    
+    // line editing
     LineEdit lineEdit;
-    typedef void (MonitorUI::*LineMethod)(std::string);
-    LineMethod lineFinishedMethod=NULL;
-    
-    void lineFinishedSaveFile(std::string s);
-    
-    void beginLineEdit(std::string s, LineMethod m){
+    StringMethod lineFinishedMethod=NULL;
+    void beginLineEdit(std::string s, StringMethod m){
         lineEdit.begin(s);
         lineFinishedMethod = m;
     }
+    
+    // callback methods for editors
+    void lineFinishedSaveFile(std::string s);
+    void stringFinishedAddChain(std::string s){}
     
     void setStatus(string s,double t); // msg, time to show
     void displayStatus();
