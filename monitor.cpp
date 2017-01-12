@@ -496,15 +496,14 @@ void MonitorUI::drawHorzBar(int y, int x, int h, int w,
     int red = w*0.9f;
     int half = w/2;
     
-    // build a string with the ctrl name in it, if there is one.
-    // We use this to write the name into the bar!
-    char buf[64];
-    if(rv && rv->ctrl)
-        sprintf(buf,"     (%.20s)",rv->ctrl->nameString.c_str());
-    else
-        buf[0]=0;
+    if(rv && rv->ctrl){
+        char buf[64];
+        sprintf(buf,"(%.20s)",rv->ctrl->nameString.c_str());
+        attrset(COLOR_PAIR(0)|(bold?A_BOLD:0));
+        mvaddstr(y+1,x+w-strlen(buf),buf);
+    }
+        
     
-    int blen=strlen(buf);
     for(int i=0;i<w;i++){
         int col;
         bool rev=true;
@@ -535,8 +534,7 @@ void MonitorUI::drawHorzBar(int y, int x, int h, int w,
         long attr = bold ? A_BOLD: 0;
         if(rev)attr|=A_REVERSE;
         attrset(COLOR_PAIR(col) | attr);
-        mvaddch(y,x+i,i<blen?buf[i]:' ');
-        for(int j=1;j<h;j++)
+        for(int j=0;j<h;j++)
             mvaddch(y+j,x+i,' ');
     }
 }
