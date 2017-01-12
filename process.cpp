@@ -136,15 +136,24 @@ void Process::processMonitorCommand(MonitorCommand& c){
         c.vp->nudge(c.v);
         break;
     case DelSend:
-        // awkward. Will leave a dangling value. No biggie.
+        // awkward. 
         c.chan->removeChainInfo(c.arg0);
         break;
     case AddSend:{
+        // Will leave a dangling value. No biggie.
         Value *v = new Value();
         v->setdb()->setrange(-60,0)->setdef(0)->reset();
         c.chan->addChainInfo(c.s,v,false,ChainInterface::find(c.s));
         break;
     }
+    case AddChannel:{
+        // Will leave 2 dangling values. Bit more biggie.
+        Value *g = new Value();
+        g->setdb()->setrange(-60,0)->setdef(0)->reset();
+        Value *p = new Value();
+        p->setrange(0,1)->setdef(0.5)->reset();
+        new Channel(c.s,c.arg0,g,p,false);
+    } break;
     case TogglePrePost:
         c.chan->chains[c.arg0].postfade=
               !c.chan->chains[c.arg0].postfade;

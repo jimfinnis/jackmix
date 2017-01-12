@@ -14,6 +14,7 @@
 #include <string>
 #include <string.h>
 
+#include "exception.h"
 #include "channel.h"
 #include "timeutils.h"
 #include "lineedit.h"
@@ -29,7 +30,11 @@ struct ChanMonData {
         chan=c;
     }
     char name[256];
+    // momentary values
     float l,r;
+    // sources (don't read the actual value!)
+    // these are actual values, but could be smoothed
+    // so we can't use the get() data in the monitor thread
     float gain,pan;
     Channel *chan;
 };
@@ -51,7 +56,8 @@ struct MonitorData {
 
 enum MonitorCommandType {ChangeGain,ChangePan,ChangeMasterGain,
           ChangeMasterPan,ChangeSendGain,ChannelMute,ChannelSolo,
-          ChangeEffectParam,DelSend,TogglePrePost,AddSend
+          ChangeEffectParam,DelSend,TogglePrePost,AddSend,
+          AddChannel
 };
 
 // this is a struct, not a union, because a lot of things can appear here together.
@@ -59,32 +65,37 @@ enum MonitorCommandType {ChangeGain,ChangePan,ChangeMasterGain,
 
 struct MonitorCommand {
     MonitorCommand(){}
+    static const int STRSIZE=128;
     
+    // various random constructors as the commands need them. Ugly.
     MonitorCommand(MonitorCommandType c,float f, Channel *ch,int a0){
-        cmd = c;
-        v = f;
-        chan = ch;
-        arg0 = a0;
+        cmd = c;        v = f;        chan = ch;        arg0 = a0;
     }
     
     MonitorCommand(MonitorCommandType c,float f,Value *p){
-        cmd = c;
-        vp = p;
-        v = f;
+        cmd = c;        vp = p;        v = f;
     }
     
     MonitorCommand(MonitorCommandType c,Channel *ch,std::string str){
-        cmd = c;
-        s = str;
-        chan = ch;
+        if(str.size()>STRSIZE) throw _("string too large");
+        strcpy(s,str.c_str());
+        cmd = c;        chan = ch;
+    }
+    
+    MonitorCommand(MonitorCommandType c,std::string str,int i){
+        if(str.size()>STRSIZE) throw _("string too large");
+        strcpy(s,str.c_str());
+        cmd = c;	arg0 = i;
     }
     
     MonitorCommandType cmd;
     Channel *chan;
     float v;
     Value *vp;
-    int arg0;
-    std::string s;
+    int arg0; // heaven knows why I've got this name...
+    // can't use std::string (or any STL type) because this
+    // gets memcpy's inside jack's ringbuffer.
+    char s[STRSIZE];
 };
 
 
@@ -124,7 +135,8 @@ class MonitorUI {
     // current channel or NULL
     Channel *curchanptr=NULL;
     
-    typedef void (MonitorUI::*KeyMethod)(int c);
+    // keymethods return true if key accepted
+    typedef bool(MonitorUI::*KeyMethod)(int c);
     // method to call if we get a key or NULL if
     // we're not waiting for one
     KeyMethod keyMethod=NULL;
@@ -134,8 +146,6 @@ class MonitorUI {
         keyString = s;
         keyMethod = m;
     }
-    
-    void confirmDeleteSend(int key);
     
     // status line
     string statusMsg;
@@ -164,7 +174,12 @@ class MonitorUI {
     
     // callback methods for editors
     void lineFinishedSaveFile(std::string s);
+    void lineFinishedAddChannelMono(std::string s);
+    void lineFinishedAddChannelStereo(std::string s);
     void stringFinishedAddChain(std::string s);
+    bool confirmDeleteSend(int key);
+    bool keyMonoOrStereoChannel(int key);
+    
     
     void setStatus(string s,double t); // msg, time to show
     void displayStatus();

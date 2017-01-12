@@ -14,7 +14,7 @@
 #include "monitor.h"
 #include "version.h"
 #include "colours.h"
-
+#include "ctrl.h"
 
 #include "help.h"
 
@@ -167,7 +167,8 @@ void MonitorUI::displayMain(MonitorData *d){
             if(chanidx==curchan)curchanptr=c->chan;
         } else
             c=NULL;
-        displayChan(i+1,c,chanidx==curchan);
+        if(c)
+            displayChan(i+1,c,chanidx==curchan);
     }
 }
 
@@ -254,8 +255,8 @@ void MonitorUI::displayChanZoom(MonitorData *d){
         int ww = w-20;
         drawHorzBar(3,10,1,ww,c->l,NULL,Gain,false);
         drawHorzBar(5,10,1,ww,c->r,NULL,Gain,false);
-        drawHorzBar(8,10,1,ww,c->gain,NULL,Green,curparam==0);
-        drawHorzBar(10,10,1,ww,c->pan,NULL,Pan,curparam==1);
+        drawHorzBar(8,10,1,ww,c->gain,c->chan->gain,Green,curparam==0);
+        drawHorzBar(10,10,1,ww,c->pan,c->chan->pan,Pan,curparam==1);
         
         for(unsigned int i=0;i<curchanptr->chains.size();i++){
             int y = i*3+15;
@@ -495,13 +496,22 @@ void MonitorUI::drawHorzBar(int y, int x, int h, int w,
     int red = w*0.9f;
     int half = w/2;
     
+    // build a string with the ctrl name in it, if there is one.
+    // We use this to write the name into the bar!
+    char buf[64];
+    if(rv && rv->ctrl)
+        sprintf(buf,"     (%.20s)",rv->ctrl->nameString.c_str());
+    else
+        buf[0]=0;
+    
+    int blen=strlen(buf);
     for(int i=0;i<w;i++){
         int col;
         bool rev=true;
         switch(mode){
         case Gain:
-            if(i>val){
-                col=PAIR_DARK;rev=false;}
+            if(i>val){rev=true;
+                col=PAIR_DARK;}
             else if(i>red)
                 col=PAIR_RED;
             else if(i>yellow)
@@ -525,7 +535,8 @@ void MonitorUI::drawHorzBar(int y, int x, int h, int w,
         long attr = bold ? A_BOLD: 0;
         if(rev)attr|=A_REVERSE;
         attrset(COLOR_PAIR(col) | attr);
-        for(int j=0;j<h;j++)
+        mvaddch(y,x+i,i<blen?buf[i]:' ');
+        for(int j=1;j<h;j++)
             mvaddch(y+j,x+i,' ');
     }
 }
@@ -647,7 +658,26 @@ void MonitorUI::lineFinishedSaveFile(std::string s){
     setStatus("Saved.",2);
 }
 
-void MonitorUI::confirmDeleteSend(int key){
+void MonitorUI::lineFinishedAddChannelMono(std::string s){
+    Process::writeCmd(MonitorCommand(MonitorCommandType::AddChannel,
+                                     s,1));
+}
+void MonitorUI::lineFinishedAddChannelStereo(std::string s){
+    Process::writeCmd(MonitorCommand(MonitorCommandType::AddChannel,
+                                     s,2));
+}
+
+bool MonitorUI::keyMonoOrStereoChannel(int key){
+    if(key == '1')
+        beginLineEdit("New channel",&MonitorUI::lineFinishedAddChannelMono);
+    else if(key == '2')
+        beginLineEdit("New channel",&MonitorUI::lineFinishedAddChannelStereo);
+    else 
+        return false;
+    return true;
+}
+
+bool MonitorUI::confirmDeleteSend(int key){
     if(key == 'y' || key == 'Y'){
         if(curchanptr){
             Process::writeCmd(MonitorCommand(
@@ -656,6 +686,7 @@ void MonitorUI::confirmDeleteSend(int key){
                                              cursend));
         }
     }
+    return true;
 }
 
 void MonitorUI::stringFinishedAddChain(std::string s){
@@ -671,8 +702,8 @@ void MonitorUI::handleInput(){
     if(keyMethod!=NULL){
         int c = getch();
         if(c!=ERR){
-            (this->*keyMethod)(c);
-            keyMethod=NULL;
+            if((this->*keyMethod)(c))
+                keyMethod=NULL;
         }
     } else if(stringList.getState()==Running){
         stringList.handleKey(getch());
@@ -820,6 +851,9 @@ void MonitorUI::handleInput(){
             break;
         case Main:
             switch(c){
+            case 'a':
+                getKey("Stereo or mono [1/2]",&MonitorUI::keyMonoOrStereoChannel);
+                break;
             case 'w':
                 beginLineEdit("Filename",&MonitorUI::lineFinishedSaveFile);
                 break;
