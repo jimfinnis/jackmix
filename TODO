@@ -1,0 +1,9 @@
+* add/remove channel
+* add/remove chain
+    - creates a null chain, ensure that works
+    - automatically creates a return channel
+    - removal must remove all sends for this chain from channels
+    - remove the return channel
+* add/remove effect from chain
+    
+

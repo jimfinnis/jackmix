@@ -88,6 +88,17 @@ public:
     // pointers to actual chains, built from chainNames after parsing.
     std::vector<ChainFeed> chains;
     
+    // is this a return channel?
+    bool isReturn(){
+        return leftport==NULL;
+    }
+    
+    // return the name of the chain we are a return from (valid only
+    // if isReturn is true)
+    std::string getReturnName(){
+        return returnChainName;
+    }
+    
     void toggleMute(){
         mute = !mute;
     }

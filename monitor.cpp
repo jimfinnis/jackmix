@@ -184,12 +184,22 @@ void MonitorUI::displayChan(int i,ChanMonData* c,bool cur){
         gain=c->gain;
         pan=c->pan;
         name = c->name;
+        
         if(c->chan){
-            if(c->chan->isMute()){
+            Channel *ch = c->chan;
+            if(ch->isReturn()){
+                attrset(COLOR_PAIR(0)|A_BOLD);
+                string rn = ch->getReturnName();
+                rn.resize(COLWIDTH-3);
+                rn = "("+rn+")";
+                
+                mvaddstr(1,x,rn.c_str());
+            }
+            if(ch->isMute()){
                 attrset(COLOR_PAIR(PAIR_BLUETEXT)|A_BOLD);
                 mvaddstr(1,x,"MUTE");
             }
-            if(c->chan->isSolo()){
+            if(ch->isSolo()){
                 attrset(COLOR_PAIR(PAIR_REDTEXT)|A_BOLD);
                 mvaddstr(1,x+5,"SOLO");
             }
