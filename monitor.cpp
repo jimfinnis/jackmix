@@ -236,7 +236,13 @@ void MonitorUI::displayChanZoom(MonitorData *d){
     } else {
         ChanMonData *c = d->chans+curchan;
         curchanptr = c->chan;
-        mvprintw(0,0,"Channel %s",c->name);
+        string namestr = c->name;
+        
+        if(curchanptr->isReturn()){
+            string rn = curchanptr->getReturnName();
+            namestr = namestr+" (return from chain "+rn+")";
+        }
+        mvprintw(0,0,"Channel %s",namestr.c_str());
         
         int numsends = (int)curchanptr->chains.size();
         // it's ugly checking this here, but it's a safeish
