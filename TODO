@@ -5,5 +5,12 @@
     - removal must remove all sends for this chain from channels
     - remove the return channel
 * add/remove effect from chain
-    
+* add control to value
+    - ideally it would be possible to either select an existing
+      control, or add a control and select that. I suspect the flow
+      for this inside the UI would be messy. Or not? Just push the
+      control edit screen?
+      
 
+      
+      
