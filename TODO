@@ -12,5 +12,28 @@
       control edit screen?
       
 
+UI code rejig:
+* three threads
+    - jack thread, sends mon msgs to ui thread
+    - ui nonblocking thread, shows monitor data and performs
+      non-blocking input calls which *look* blocking from the other
+      thread
+    - "blocking" ui thread, which handles menu flow and has blocking
+      calls, which wait for data from the other ui thread.
       
+      
+* classes
+    - each screen has a display() method, which is called from the
+      non-blocking thread with a monitor data structure.
+    - each screen also has a run() method, which does actual flow
+      within the screen ui, and on exit transfers to another screen.
+    
+* data flow
+    rings:
+    * jack thread -> ui non-blocking thread  
+    * ui blocking thread -> jack thread
+    strings and keypresses:
+        ui non-blocking thread -> ui blocking thread
+        (this may require condition variables)
+
       
