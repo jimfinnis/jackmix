@@ -35,5 +35,12 @@ UI code rejig:
     strings and keypresses:
         ui non-blocking thread -> ui blocking thread
         (this may require condition variables)
-
+    mode commands (e.g. "edit a string, please")
+        - ui-b thread locks mutex, edits an input request structure,
+          unlocks the mutex and waits on a condition
+        - ui-nb thread responds (running the appropriate editor or
+          just keypress input) and when ready, fills in the response
+          and signals the condition
+        - ui-b thread continues.
+        
       
