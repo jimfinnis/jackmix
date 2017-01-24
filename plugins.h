@@ -92,7 +92,7 @@ struct PluginData {
 namespace PluginMgr {
 /// scan a plugin directory and create entries for all plugins
 /// by label (but do not load them).
-void loadFilesIn(const char *dir);
+void loadFilesIn(const char *dir,bool permitNoDir=false);
 /// find a plugin, throwing if not found
 PluginData *getPlugin(std::string label);
 /// delete all instances - AFTER stopping the process thread!

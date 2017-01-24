@@ -271,9 +271,13 @@ static unordered_map<string,PluginData *> plugins;
 static unordered_map<unsigned long,int> uniqueIDs;
 
 
-void PluginMgr::loadFilesIn(const char *dir){
+void PluginMgr::loadFilesIn(const char *dir,bool permitNoDir){
     DIR *d = opendir(dir);
-    if(!dir)throw _("unable to open LADSPA directory %s",dir);
+    if(!d){
+        if(permitNoDir)return;
+        else
+            throw _("unable to open LADSPA directory %s",dir);
+    }
     
     while(dirent *e = readdir(d)){
         const char *s = rindex(e->d_name,'.');

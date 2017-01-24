@@ -59,7 +59,7 @@ static const char *MainHelpCol2[] = {
 
 static const char **MainHelp[]=
 {
-    MainHelpCol1,MainHelpCol2
+    MainHelpCol1,MainHelpCol2,NULL
 };
     
 

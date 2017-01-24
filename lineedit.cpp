@@ -26,8 +26,7 @@ void LineEdit::display(int y,int x){
         attrset(COLOR_PAIR(0)|A_BOLD|A_REVERSE);
         addch(' ');
     }
-    
-        
+    attrset(COLOR_PAIR(0));
 }
 
 EditState LineEdit::handleKey(int k){

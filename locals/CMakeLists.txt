@@ -16,6 +16,9 @@ macro(add_locals_files)
     endforeach(file)
 endmacro(add_locals_files)
 
+# so we can get the ladspa.h
+include_directories(..)
+
 add_locals_files(mix.xml)
 
 # I'd love to generate the list automatically, but argh.

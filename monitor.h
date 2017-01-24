@@ -22,6 +22,8 @@
 
 using namespace std;
 
+extern class Screen *curscreen; // the current screen. LOCK IT.
+
 struct ChanMonData {
     void init(string n,float _l,float _r,float g,float p,Channel *c){
         l=_l; r=_r;
@@ -99,155 +101,101 @@ struct MonitorCommand {
 };
 
 
-struct StatusLine {
-    void setmsg(string s);
-    void display();
+enum InputRequestType {
+    InputReqIdle,InputReqLineEdit,InputReqKey,InputReqStringList
 };
-
-class MonitorUIDummy {
-public:
-    MonitorUIDummy(){}
-    ~MonitorUIDummy(){}
     
-    void display(MonitorData *d){}
-    void handleInput(){};
-};
-
-class MonitorUIBasic {
-public:
-    MonitorUIBasic(){}
-    ~MonitorUIBasic(){}
+// the input request/response - lock the mutex when you edit or read it.
+// This is a global structure - some elements (the list) will need to be cleared
+// each time.
+struct InputRequest {
+    // if t is NOT idle and we're not running, initialise as necessary
+    // if t is NOT idle and we are running, process an existing request
+    InputRequestType t=InputReqIdle;
+    bool running=false;
+    // the request - I'm not going to risk putting this lot into a union.
+    std::string prompt;
+    std::vector<std::string> list;
     
-    void display(MonitorData *d);
-    void handleInput(){};
-};
-
-class MonitorUI {
-    int w,h; // display size
-    // current chan in main view, -1 is master, anything else is index
-    // into MonitorData.
-    int curchan=-1;
-    // cleared by state changes, reflects currently edited param in
-    // some states.
-    int curparam=0; 
-    // current send - -ve if not valid
-    int cursend=-1;
-    // current channel or NULL
-    Channel *curchanptr=NULL;
+    // the result
+    bool aborted; // true if we should ignore the result
+    std::string strout;
+    int intout;
     
-    // keymethods return true if key accepted
-    typedef bool(MonitorUI::*KeyMethod)(int c);
-    // method to call if we get a key or NULL if
-    // we're not waiting for one
-    KeyMethod keyMethod=NULL;
-    std::string keyString; // string to show if asking for key
-    
-    void getKey(std::string s,KeyMethod m){ // prompt, method to call
-        keyString = s;
-        keyMethod = m;
+    // called when the blocking thread sets up the structure
+    void startRequest(InputRequestType tp){
+        list.clear();
+        running=false;
+        aborted=false;
+        t = tp;
     }
+    
+    // called once the non-block thread has completed filling the structure
+    // and is about to signal the blocking thread
+    void setDone(){
+        running=false;
+        t = InputReqIdle;
+    }
+};
+
+
+// this class controls the non-blocking UI thread, which actually
+// draws the display over and over again.
+// It receives messages from the jack thread telling it what to display,
+// and is also controlled (via a bunch of stuff guarded by a mutex)
+// by the blocking UI thread. It runs the display() method in Screen subclasses.
+
+class MonitorThread {
+    // these variables should be locked
+    bool requestStop,running;
     
     // status line
     string statusMsg;
     bool statusShowing=false;
     Time statusTimeToEnd;
     
-    typedef void (MonitorUI::*StringMethod)(std::string);
-    
-    // string list selection
-    StringList stringList;
-    StringMethod stringFinishedMethod=NULL;
-    void beginStringList(std::string p,
-                         std::vector<std::string>& l, StringMethod m){
-        stringList.begin(p,l);
-        stringFinishedMethod = m;
-    }
-    
-    
-    // line editing
+    // editors
     LineEdit lineEdit;
-    StringMethod lineFinishedMethod=NULL;
-    void beginLineEdit(std::string s, StringMethod m){
-        lineEdit.begin(s);
-        lineFinishedMethod = m;
-    }
+    StringList stringList;
     
-    // callback methods for editors
-    void lineFinishedSaveFile(std::string s);
-    void lineFinishedAddChannelMono(std::string s);
-    void lineFinishedAddChannelStereo(std::string s);
-    void stringFinishedAddChain(std::string s);
-    bool confirmDeleteSend(int key);
-    bool keyMonoOrStereoChannel(int key);
-    
-    
+    void loop(); // the main loop
+
     void setStatus(string s,double t); // msg, time to show
     void displayStatus();
-    
-    enum UIState {
-        Main,ChanZoom,ChainList
-          };
-    
-    UIState state;
-    UIState prevState;
+    int w,h;
 public:
-    MonitorUI();
-    ~MonitorUI();
     
-    void display(MonitorData *d);
-    void handleInput();
+    static void lock();
+    static void unlock();
+    
+    MonitorThread();
+    ~MonitorThread();
+    
+    void threadfunc();
+    static void showHelp(const char ***h);
+};
 
-private:
-    const char ***helpScreen;
-    void gotoState(UIState s){
-        prevState = state;
-        state = s;
-        curparam = 0;
+// this class handles the blocking IO running in the main thread. It sends messages
+// to the jack thread, and also controls the monitor (non-blocking IO) thread through
+// a mutexed block of data. It runs the flow() method in Screen subclasses forever,
+// until one of those returns false indicating it's time to quit.
+
+class InputManager {
+public:
+    InputManager(){
     }
-    void gotoPrevState(){
-        state = prevState;
-    }
-        
     
-    enum BarMode { Gain,Green,Pan };
+    void flow();
+    void lock();
+    void unlock();
     
-    // states
-    void displayMain(MonitorData *d);
-    void displayChan(int i,ChanMonData* c,bool cur); // c=NULL if invalid
-    
-    void displayChanZoom(MonitorData *c);
-    
-    void displayChainList();
-    
-    // v is 0-1 linear unless rv (range value) is present. We treat v and rv separately
-    // so that we can store the value to show, passing it from process to main thread in
-    // a ring buffer.
-    void drawVertBar(int y, int x, int h, int w, 
-                     float v,Value *rv,BarMode mode,bool bold);
-    void drawHorzBar(int y, int x, int h, int w, 
-                     float v,Value *rv,BarMode mode,bool bold);
-    
-    // display page title
-    void title(const char *s);
-    
-    // nudge the gain of the currently edited send on the current channel
-    // in ChanZoom state.
-    void commandSendGainNudge(float v);
-    // nudge the gain of either the current channel or the master
-    // if curchan<0
-    void commandGainNudge(float v);
-    // nudge the pan of either the current channel or the master
-    // if curchan<0
-    void commandPanNudge(float v);
-    // nudge the current effect parameter
-    void commandParamNudge(float v);
-    
-    // generic command to current chan, if valid
-    void simpleChannelCommand(MonitorCommandType cmd);
-    
-    // send some command
-    void command(MonitorCommandType cmd,float v,Channel *c=NULL,int arg0=0);
-    
+    // blocking input routines - these set a request and then wait for a condition
+    // variable. They then read back the result.
+    std::string getString(std::string p,bool *aborted);
+    int getKey();
+    std::string getFromList(std::string p,
+                            std::vector<std::string>& l,
+                            bool *aborted); // may return ""
 };
 
 

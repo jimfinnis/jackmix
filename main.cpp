@@ -50,17 +50,6 @@ void poll(){
 }
     
 
-void loop(){
-    MonitorUI mon;
-    while(1){
-        usleep(100000);
-        poll();
-        static MonitorData mdat;
-        if(Process::pollMonRing(&mdat))
-            mon.display(&mdat);
-        mon.handleInput();
-    }
-}
 void noguiloop(){
     while(1){
         usleep(100000);
@@ -70,8 +59,14 @@ void noguiloop(){
     }
 }
 
-void shutdown(int s){
-    throw _("abort");
+
+void guiloop(){
+    // start the non-blocking monitor thread.
+    MonitorThread thread;
+    InputManager input;
+    
+    // run the screens until we complete, when the thread will die.
+    input.flow();
 }
 
 void usage(){
@@ -80,8 +75,6 @@ void usage(){
 }
 
 int main(int argc,char *argv[]){
-    signal(SIGINT,shutdown);
-    signal(SIGQUIT,shutdown);
     
     bool nogui=false;
     
@@ -110,7 +103,7 @@ int main(int argc,char *argv[]){
         Process::initJack();
         
         // load LADSPA plugins
-        PluginMgr::loadFilesIn("/usr/lib/ladspa");
+        PluginMgr::loadFilesIn("/usr/lib/ladspa",true);
         //PluginMgr::loadFilesIn("./testpl");
         
         // parse the config
@@ -129,8 +122,13 @@ int main(int argc,char *argv[]){
     Process::parsedAndReady=true;
     
     try {
-        if(nogui)noguiloop();
-        else loop();
+        if(nogui)
+            noguiloop();
+        else {
+            // start the non-blocking monitor thread
+            guiloop();
+        }
+        
     } catch(string s){
         //        PluginMgr::close();
         Process::shutdown();

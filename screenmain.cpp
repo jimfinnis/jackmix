@@ -1,0 +1,269 @@
+/**
+ * @file screenmain.cpp
+ * @brief  Brief description of file.
+ *
+ */
+
+#include "monitor.h"
+#include "screen.h"
+
+#include "help.h"
+#include <ncurses.h>
+
+MainScreen scrMain;
+
+void MainScreen::display(MonitorData *d){
+    for(int i=0;i<list.size();i++){
+        mvprintw(i,0,list[i].c_str());
+    }
+}
+
+Screen *MainScreen::flow(InputManager *im){
+    bool ab;
+    for(;;){
+        string s = im->getString("hello",&ab);
+        if(!ab){
+            if(s=="quit")return NULL;
+            if(s=="go"){
+                vector<string> l;
+l.push_back("understandably");
+l.push_back("understanding");
+l.push_back("understanding's");
+l.push_back("understandingly");
+l.push_back("understandings");
+l.push_back("understands");
+l.push_back("understate");
+l.push_back("understated");
+l.push_back("understatement");
+l.push_back("understatement's");
+l.push_back("understatements");
+l.push_back("understates");
+l.push_back("understating");
+l.push_back("understood");
+l.push_back("understudied");
+l.push_back("understudies");
+l.push_back("understudy");
+l.push_back("understudy's");
+l.push_back("understudying");
+l.push_back("undertake");
+l.push_back("undertaken");
+l.push_back("undertaker");
+l.push_back("undertaker's");
+l.push_back("undertakers");
+l.push_back("undertakes");
+l.push_back("undertaking");
+l.push_back("undertaking's");
+l.push_back("undertakings");
+l.push_back("undertone");
+l.push_back("undertone's");
+l.push_back("undertones");
+l.push_back("undertook");
+l.push_back("undertow");
+l.push_back("undertow's");
+l.push_back("undertows");
+l.push_back("underused");
+l.push_back("undervalue");
+l.push_back("undervalued");
+l.push_back("undervalues");
+l.push_back("undervaluing");
+l.push_back("underwater");
+l.push_back("underwear");
+l.push_back("underwear's");
+l.push_back("underweight");
+l.push_back("underweight's");
+l.push_back("underwent");
+l.push_back("underworld");
+l.push_back("underworld's");
+l.push_back("underworlds");
+l.push_back("underwrite");
+l.push_back("underwriter");
+l.push_back("underwriter's");
+l.push_back("underwriters");
+l.push_back("underwrites");
+l.push_back("underwriting");
+l.push_back("underwritten");
+l.push_back("underwrote");
+l.push_back("undeserved");
+l.push_back("undeservedly");
+l.push_back("undeserving");
+l.push_back("undesirability");
+l.push_back("undesirable");
+l.push_back("undesirable's");
+l.push_back("undesirables");
+l.push_back("undetectable");
+l.push_back("undetected");
+l.push_back("undetermined");
+l.push_back("undeterred");
+l.push_back("undeveloped");
+l.push_back("undid");
+l.push_back("undies");
+l.push_back("undies's");
+l.push_back("undignified");
+l.push_back("undiluted");
+l.push_back("undiminished");
+l.push_back("undisciplined");
+l.push_back("undisclosed");
+l.push_back("undiscovered");
+l.push_back("undiscriminating");
+l.push_back("undisguised");
+l.push_back("undisputed");
+l.push_back("undistinguished");
+l.push_back("undisturbed");
+l.push_back("undivided");
+l.push_back("undo");
+l.push_back("undocumented");
+l.push_back("undoes");
+l.push_back("undoing");
+l.push_back("undoing's");
+l.push_back("undoings");
+l.push_back("undone");
+l.push_back("undoubted");
+l.push_back("undoubtedly");
+l.push_back("undress");
+l.push_back("undress's");
+l.push_back("undressed");
+l.push_back("undresses");
+l.push_back("undressing");
+l.push_back("undue");
+l.push_back("undulant");
+l.push_back("undulate");
+l.push_back("undulated");
+l.push_back("undulates");
+l.push_back("undulating");
+l.push_back("undulation");
+l.push_back("undulation's");
+l.push_back("undulations");
+l.push_back("unduly");
+l.push_back("undying");
+l.push_back("unearned");
+l.push_back("unearth");
+l.push_back("unearthed");
+l.push_back("unearthing");
+l.push_back("unearthly");
+l.push_back("unearths");
+l.push_back("unease");
+l.push_back("unease's");
+l.push_back("uneasier");
+l.push_back("uneasiest");
+l.push_back("uneasily");
+l.push_back("uneasiness");
+l.push_back("uneasiness's");
+l.push_back("uneasy");
+l.push_back("uneaten");
+l.push_back("uneconomic");
+l.push_back("uneconomical");
+l.push_back("unedited");
+l.push_back("uneducated");
+l.push_back("unembarrassed");
+l.push_back("unemotional");
+l.push_back("unemployable");
+l.push_back("unemployed");
+l.push_back("unemployed's");
+l.push_back("unemployment");
+l.push_back("unemployment's");
+l.push_back("unending");
+l.push_back("unendurable");
+l.push_back("unenforceable");
+l.push_back("unenlightened");
+l.push_back("unenthusiastic");
+l.push_back("unenviable");
+l.push_back("unequal");
+l.push_back("unequalled");
+l.push_back("unequally");
+l.push_back("unequivocal");
+l.push_back("unequivocally");
+l.push_back("unerring");
+l.push_back("unerringly");
+l.push_back("unethical");
+l.push_back("uneven");
+l.push_back("unevener");
+l.push_back("unevenest");
+l.push_back("unevenly");
+l.push_back("unevenness");
+l.push_back("unevenness's");
+l.push_back("uneventful");
+l.push_back("uneventfully");
+l.push_back("unexampled");
+l.push_back("unexceptionable");
+l.push_back("unexceptional");
+l.push_back("unexciting");
+l.push_back("unexpected");
+l.push_back("unexpectedly");
+l.push_back("unexplained");
+l.push_back("unexplored");
+l.push_back("unexpurgated");
+l.push_back("unfailing");
+l.push_back("unfailingly");
+l.push_back("unfair");
+l.push_back("unfairer");
+l.push_back("unfairest");
+l.push_back("unfairly");
+l.push_back("unfairness");
+l.push_back("unfairness's");
+l.push_back("unfaithful");
+l.push_back("unfaithfully");
+l.push_back("unfaithfulness");
+l.push_back("unfaithfulness's");
+l.push_back("unfamiliar");
+l.push_back("unfamiliarity");
+l.push_back("unfamiliarity's");
+l.push_back("unfashionable");
+l.push_back("unfasten");
+l.push_back("unfastened");
+l.push_back("unfastening");
+l.push_back("unfastens");
+l.push_back("unfathomable");
+l.push_back("unfavorable");
+l.push_back("unfavourable");
+l.push_back("unfavourably");
+l.push_back("unfeasible");
+l.push_back("unfeeling");
+l.push_back("unfeelingly");
+l.push_back("unfeigned");
+l.push_back("unfetter");
+l.push_back("unfettered");
+l.push_back("unfettering");
+l.push_back("unfetters");
+l.push_back("unfilled");
+l.push_back("unfinished");
+l.push_back("unfit");
+l.push_back("unfits");
+l.push_back("unfitted");
+l.push_back("unfitting");
+l.push_back("unflagging");
+l.push_back("unflappable");
+l.push_back("unflattering");
+l.push_back("unflinching");
+l.push_back("unflinchingly");
+l.push_back("unfold");
+l.push_back("unfolded");
+l.push_back("unfolding");
+l.push_back("unfolds");
+l.push_back("unforeseeable");
+l.push_back("unforeseen");
+l.push_back("unforgettable");
+l.push_back("unforgettably");
+l.push_back("unforgivable");
+l.push_back("unforgiving");
+l.push_back("unformed");
+l.push_back("unfortunate");
+l.push_back("unfortunate's");
+l.push_back("unfortunately");
+l.push_back("unfortunates");
+l.push_back("unfounded");
+l.push_back("unfrequented");
+l.push_back("unfriendlier");
+l.push_back("unfriendliest");
+l.push_back("unfriendliness");
+l.push_back("unfriendliness's");
+                l.push_back("unfriendly");
+                string s = im->getFromList("foo",l,&ab);
+                if(!ab)
+                    list.push_back(s);
+            }
+                    
+            else list.push_back(s);
+        }
+    }
+    return this;
+}
