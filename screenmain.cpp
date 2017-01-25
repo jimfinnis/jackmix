@@ -6,264 +6,174 @@
 
 #include "monitor.h"
 #include "screen.h"
+#include "process.h"
 
 #include "help.h"
 #include <ncurses.h>
 
 MainScreen scrMain;
 
+#define RIGHTWIDTH 20
+#define COLWIDTH 10
+
+static MonitorData lastDisplayed;
+
+
 void MainScreen::display(MonitorData *d){
-    for(int i=0;i<list.size();i++){
-        mvprintw(i,0,list[i].c_str());
+    title("MAIN VIEW");
+    // how many channels (cols) can we do, not including MASTER?
+    // There's a bit of space over
+    // to the right we need to leave free.
+    
+    int w = MonitorThread::get()->w;
+    
+    int numcols = (w-RIGHTWIDTH)/COLWIDTH-1; // (-1 because master)
+    
+    // there is a current col, which must be on the screen.
+    
+    int firstcol = 0; // first col on screen
+    
+    // curchan may be -1, in which case we are editing master values.
+    
+    if(curchan >= firstcol+numcols){
+        firstcol = curchan-numcols/2;
+    }
+    
+    
+    displayChan(0,&d->master,curchan==-1);
+    curchanptr=NULL;
+    for(int i=0;i<numcols;i++){
+        ChanMonData *c;
+        int chanidx = i+firstcol;
+        if(chanidx>=0 && chanidx<(int)d->numchans){
+            c=&d->chans[chanidx];
+            if(chanidx==curchan)curchanptr=c->chan;
+        } else
+            c=NULL;
+        if(c)
+            displayChan(i+1,c,chanidx==curchan);
     }
 }
 
-Screen *MainScreen::flow(InputManager *im){
-    bool ab;
-    for(;;){
-        string s = im->getString("hello",&ab);
-        if(!ab){
-            if(s=="quit")return NULL;
-            if(s=="go"){
-                vector<string> l;
-l.push_back("understandably");
-l.push_back("understanding");
-l.push_back("understanding's");
-l.push_back("understandingly");
-l.push_back("understandings");
-l.push_back("understands");
-l.push_back("understate");
-l.push_back("understated");
-l.push_back("understatement");
-l.push_back("understatement's");
-l.push_back("understatements");
-l.push_back("understates");
-l.push_back("understating");
-l.push_back("understood");
-l.push_back("understudied");
-l.push_back("understudies");
-l.push_back("understudy");
-l.push_back("understudy's");
-l.push_back("understudying");
-l.push_back("undertake");
-l.push_back("undertaken");
-l.push_back("undertaker");
-l.push_back("undertaker's");
-l.push_back("undertakers");
-l.push_back("undertakes");
-l.push_back("undertaking");
-l.push_back("undertaking's");
-l.push_back("undertakings");
-l.push_back("undertone");
-l.push_back("undertone's");
-l.push_back("undertones");
-l.push_back("undertook");
-l.push_back("undertow");
-l.push_back("undertow's");
-l.push_back("undertows");
-l.push_back("underused");
-l.push_back("undervalue");
-l.push_back("undervalued");
-l.push_back("undervalues");
-l.push_back("undervaluing");
-l.push_back("underwater");
-l.push_back("underwear");
-l.push_back("underwear's");
-l.push_back("underweight");
-l.push_back("underweight's");
-l.push_back("underwent");
-l.push_back("underworld");
-l.push_back("underworld's");
-l.push_back("underworlds");
-l.push_back("underwrite");
-l.push_back("underwriter");
-l.push_back("underwriter's");
-l.push_back("underwriters");
-l.push_back("underwrites");
-l.push_back("underwriting");
-l.push_back("underwritten");
-l.push_back("underwrote");
-l.push_back("undeserved");
-l.push_back("undeservedly");
-l.push_back("undeserving");
-l.push_back("undesirability");
-l.push_back("undesirable");
-l.push_back("undesirable's");
-l.push_back("undesirables");
-l.push_back("undetectable");
-l.push_back("undetected");
-l.push_back("undetermined");
-l.push_back("undeterred");
-l.push_back("undeveloped");
-l.push_back("undid");
-l.push_back("undies");
-l.push_back("undies's");
-l.push_back("undignified");
-l.push_back("undiluted");
-l.push_back("undiminished");
-l.push_back("undisciplined");
-l.push_back("undisclosed");
-l.push_back("undiscovered");
-l.push_back("undiscriminating");
-l.push_back("undisguised");
-l.push_back("undisputed");
-l.push_back("undistinguished");
-l.push_back("undisturbed");
-l.push_back("undivided");
-l.push_back("undo");
-l.push_back("undocumented");
-l.push_back("undoes");
-l.push_back("undoing");
-l.push_back("undoing's");
-l.push_back("undoings");
-l.push_back("undone");
-l.push_back("undoubted");
-l.push_back("undoubtedly");
-l.push_back("undress");
-l.push_back("undress's");
-l.push_back("undressed");
-l.push_back("undresses");
-l.push_back("undressing");
-l.push_back("undue");
-l.push_back("undulant");
-l.push_back("undulate");
-l.push_back("undulated");
-l.push_back("undulates");
-l.push_back("undulating");
-l.push_back("undulation");
-l.push_back("undulation's");
-l.push_back("undulations");
-l.push_back("unduly");
-l.push_back("undying");
-l.push_back("unearned");
-l.push_back("unearth");
-l.push_back("unearthed");
-l.push_back("unearthing");
-l.push_back("unearthly");
-l.push_back("unearths");
-l.push_back("unease");
-l.push_back("unease's");
-l.push_back("uneasier");
-l.push_back("uneasiest");
-l.push_back("uneasily");
-l.push_back("uneasiness");
-l.push_back("uneasiness's");
-l.push_back("uneasy");
-l.push_back("uneaten");
-l.push_back("uneconomic");
-l.push_back("uneconomical");
-l.push_back("unedited");
-l.push_back("uneducated");
-l.push_back("unembarrassed");
-l.push_back("unemotional");
-l.push_back("unemployable");
-l.push_back("unemployed");
-l.push_back("unemployed's");
-l.push_back("unemployment");
-l.push_back("unemployment's");
-l.push_back("unending");
-l.push_back("unendurable");
-l.push_back("unenforceable");
-l.push_back("unenlightened");
-l.push_back("unenthusiastic");
-l.push_back("unenviable");
-l.push_back("unequal");
-l.push_back("unequalled");
-l.push_back("unequally");
-l.push_back("unequivocal");
-l.push_back("unequivocally");
-l.push_back("unerring");
-l.push_back("unerringly");
-l.push_back("unethical");
-l.push_back("uneven");
-l.push_back("unevener");
-l.push_back("unevenest");
-l.push_back("unevenly");
-l.push_back("unevenness");
-l.push_back("unevenness's");
-l.push_back("uneventful");
-l.push_back("uneventfully");
-l.push_back("unexampled");
-l.push_back("unexceptionable");
-l.push_back("unexceptional");
-l.push_back("unexciting");
-l.push_back("unexpected");
-l.push_back("unexpectedly");
-l.push_back("unexplained");
-l.push_back("unexplored");
-l.push_back("unexpurgated");
-l.push_back("unfailing");
-l.push_back("unfailingly");
-l.push_back("unfair");
-l.push_back("unfairer");
-l.push_back("unfairest");
-l.push_back("unfairly");
-l.push_back("unfairness");
-l.push_back("unfairness's");
-l.push_back("unfaithful");
-l.push_back("unfaithfully");
-l.push_back("unfaithfulness");
-l.push_back("unfaithfulness's");
-l.push_back("unfamiliar");
-l.push_back("unfamiliarity");
-l.push_back("unfamiliarity's");
-l.push_back("unfashionable");
-l.push_back("unfasten");
-l.push_back("unfastened");
-l.push_back("unfastening");
-l.push_back("unfastens");
-l.push_back("unfathomable");
-l.push_back("unfavorable");
-l.push_back("unfavourable");
-l.push_back("unfavourably");
-l.push_back("unfeasible");
-l.push_back("unfeeling");
-l.push_back("unfeelingly");
-l.push_back("unfeigned");
-l.push_back("unfetter");
-l.push_back("unfettered");
-l.push_back("unfettering");
-l.push_back("unfetters");
-l.push_back("unfilled");
-l.push_back("unfinished");
-l.push_back("unfit");
-l.push_back("unfits");
-l.push_back("unfitted");
-l.push_back("unfitting");
-l.push_back("unflagging");
-l.push_back("unflappable");
-l.push_back("unflattering");
-l.push_back("unflinching");
-l.push_back("unflinchingly");
-l.push_back("unfold");
-l.push_back("unfolded");
-l.push_back("unfolding");
-l.push_back("unfolds");
-l.push_back("unforeseeable");
-l.push_back("unforeseen");
-l.push_back("unforgettable");
-l.push_back("unforgettably");
-l.push_back("unforgivable");
-l.push_back("unforgiving");
-l.push_back("unformed");
-l.push_back("unfortunate");
-l.push_back("unfortunate's");
-l.push_back("unfortunately");
-l.push_back("unfortunates");
-l.push_back("unfounded");
-l.push_back("unfrequented");
-l.push_back("unfriendlier");
-l.push_back("unfriendliest");
-l.push_back("unfriendliness");
-l.push_back("unfriendliness's");
-                l.push_back("unfriendly");
-                string s = im->getFromList("foo",l,&ab);
-                if(!ab)
-                    list.push_back(s);
+void MainScreen::displayChan(int i,ChanMonData* c,bool cur){
+    int x = i*COLWIDTH;
+    
+    float l,r,gain,pan;
+    const char *name;
+    
+    int h = MonitorThread::get()->h;
+    
+    
+    if(c){
+        l=c->l;
+        r=c->r;
+        gain=c->gain;
+        pan=c->pan;
+        name = c->name;
+        
+        if(c->chan){
+            Channel *ch = c->chan;
+            if(ch->isReturn()){
+                attrset(COLOR_PAIR(0)|A_BOLD);
+                string rn = ch->getReturnName();
+                rn.resize(COLWIDTH-3);
+                rn = "("+rn+")";
+                
+                mvaddstr(1,x,rn.c_str());
             }
-                    
-            else list.push_back(s);
+            if(ch->isMute()){
+                attrset(COLOR_PAIR(PAIR_BLUETEXT)|A_BOLD);
+                mvaddstr(1,x,"MUTE");
+            }
+            if(ch->isSolo()){
+                attrset(COLOR_PAIR(PAIR_REDTEXT)|A_BOLD);
+                mvaddstr(1,x+5,"SOLO");
+            }
+        }
+    } else {
+        l=r=gain=pan=0;
+        name="xxxx";
+    }
+    
+    if(cur)
+        attrset(COLOR_PAIR(PAIR_HILIGHT)|A_BOLD);
+    else
+        attrset(COLOR_PAIR(0));
+    
+    mvprintw(0,x,"%s",name);
+    
+    
+    // inputs to pan/gain bars are range 0-1 unless a value is given
+    drawVertBar(2,x,h-3,1,l,NULL,Gain,false);
+    drawVertBar(2,x+2,h-3,1,r,NULL,Gain,false);
+    drawVertBar(2,x+4,h-3,1,gain,NULL,Green,cur);
+    drawVertBar(2,x+6,h-3,1,pan,NULL,Pan,cur);
+    
+    attrset(COLOR_PAIR(0));
+}    
+
+void MainScreen::commandGainNudge(float v){
+    if(curchanptr){
+        if(curchanptr->gain->db)v*=0.1f;
+        Process::writeCmd(MonitorCommand(MonitorCommandType::ChangeGain,curchanptr,v));
+    } else {
+        v*=0.1f; // master gain is always log
+        Process::writeCmd(MonitorCommand(MonitorCommandType::ChangeMasterGain,NULL,v));
+    }
+}    
+
+void MainScreen::commandPanNudge(float v){
+    if(curchanptr)
+        Process::writeCmd(MonitorCommand(MonitorCommandType::ChangePan,curchanptr,v));
+    else 
+        Process::writeCmd(MonitorCommand(MonitorCommandType::ChangeMasterPan,NULL,v));
+}
+
+Screen *MainScreen::flow(InputManager *im){
+    for(;;){
+        int c = im->getKey();
+        switch(c){
+        case 'a':
+//TODO            getKey("Stereo or mono [1/2]",&MainScreen::keyMonoOrStereoChannel);
+            break;
+        case 'w':
+//TODO            beginLineEdit("Filename",&MainScreen::lineFinishedSaveFile);
+            break;
+        case 'c':case 'C':
+                ;  // RETURN NEW STATE HERE
+//TODO            gotoState(ChainList);
+//            regenChainData(curparam);
+            break;
+        case 'm':case 'M':
+            Process::writeCmd(MonitorCommand(MonitorCommandType::ChannelMute,curchanptr));
+            break;
+        case 's':case 'S':
+            Process::writeCmd(MonitorCommand(MonitorCommandType::ChannelSolo,curchanptr));
+            break;
+        case 10:
+//TODO
+            if(curchan>=0)
+                ;  // RETURN NEW STATE HERE
+            break;
+        case 'x':
+            curchan++;
+            break;
+        case 'z':
+            if(--curchan<-1)
+                curchan=0;
+            break;
+        case KEY_UP:
+            commandGainNudge(1);break;
+        case KEY_DOWN:
+            commandGainNudge(-1);break;
+        case KEY_LEFT:
+            commandPanNudge(-1);break;
+        case KEY_RIGHT:
+            commandPanNudge(1);break;
+        case 'q':case 'Q':
+            c = im->getKey("are you sure?");
+            if(c=='y'||c=='Y')return NULL;
+        default:break;
         }
     }
-    return this;
 }

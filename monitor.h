@@ -54,12 +54,22 @@ struct MonitorData {
     }
 };
 
-// commands sent from main thread monitor code to processing thread
+// commands sent from main thread monitor code to processing thread,
+// with the MonitorCommand elements they require in the comment
 
-enum MonitorCommandType {ChangeGain,ChangePan,ChangeMasterGain,
-          ChangeMasterPan,ChangeSendGain,ChannelMute,ChannelSolo,
-          ChangeEffectParam,DelSend,TogglePrePost,AddSend,
-          AddChannel
+enum MonitorCommandType {
+    ChangeGain,                 // chan,v
+          ChangePan,            // chan,v
+          ChangeMasterGain,     // v
+          ChangeMasterPan,      // v
+          ChangeSendGain,       // chan,arg0(send index),v
+          ChannelMute,          // chan
+          ChannelSolo,          // chan
+          ChangeEffectParam,    // vp, v
+          DelSend,              // chan,arg0(send index)
+          TogglePrePost,        // chan,arg0(send index)
+          AddSend,              // chan,s(name)
+          AddChannel            // s(name),arg0(1/2 [mono/stereo])
 };
 
 // this is a struct, not a union, because a lot of things can appear here together.
@@ -77,6 +87,13 @@ struct MonitorCommand {
     MonitorCommand(MonitorCommandType c,float f,Value *p){
         cmd = c;        vp = p;        v = f;
     }
+    MonitorCommand(MonitorCommandType c,Channel *ch,float f){
+        cmd = c;        chan = ch;     v = f;
+    }
+    MonitorCommand(MonitorCommandType c,Channel *ch){
+        cmd = c;        chan = ch;
+    }
+    
     
     MonitorCommand(MonitorCommandType c,Channel *ch,std::string str){
         if(str.size()>STRSIZE) throw _("string too large");
@@ -146,6 +163,7 @@ struct InputRequest {
 // by the blocking UI thread. It runs the display() method in Screen subclasses.
 
 class MonitorThread {
+    
     // these variables should be locked
     bool requestStop,running;
     
@@ -162,8 +180,15 @@ class MonitorThread {
 
     void setStatus(string s,double t); // msg, time to show
     void displayStatus();
-    int w,h;
+    
+    static MonitorThread *instance;
 public:
+    int w,h; // screen dimensions
+    
+    // there's only one of these - return this to get the instance. Ugly.
+    static MonitorThread *get(){
+        return instance;
+    }
     
     static void lock();
     static void unlock();
@@ -192,7 +217,7 @@ public:
     // blocking input routines - these set a request and then wait for a condition
     // variable. They then read back the result.
     std::string getString(std::string p,bool *aborted);
-    int getKey();
+    int getKey(const char *prompt=NULL); // might be null, in which case there's no prompt
     std::string getFromList(std::string p,
                             std::vector<std::string>& l,
                             bool *aborted); // may return ""

@@ -23,6 +23,7 @@
 class Screen *curscreen=NULL; // the current screen. LOCK IT.
 
 static InputRequest req;
+MonitorThread *MonitorThread::instance =NULL;
 
 /// primary mutex
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; 
@@ -55,15 +56,19 @@ void InputManager::unlock(){
     
 
 MonitorThread::MonitorThread(){
+    if(instance)
+        throw _("a monitor thread is already running.");
+    
     running=true;requestStop=false;
     // start the thread
     
-    
     pthread_create(&thread,NULL,_threadfunc,this);
+    instance = this;
 }
 
 MonitorThread::~MonitorThread(){
     lock();
+    instance = NULL;
     requestStop=true;
     unlock();
     for(;;){
@@ -100,8 +105,8 @@ void MonitorThread::threadfunc(){
     
     // set colour pairs
     start_color();
-    if(can_change_color())
-        setStatus("Color!",10);
+//    if(can_change_color())
+//        setStatus("Color!",10);
     
     init_pair(PAIR_HILIGHT,COLOR_YELLOW,COLOR_BLACK);
     init_pair(PAIR_GREEN,COLOR_GREEN,COLOR_GREEN);
@@ -198,12 +203,17 @@ void MonitorThread::loop(){
         static unsigned int ct=0;
         mvprintw(0,40,"%ud",ct++);
         
-        // display line edit if any, then string list if any, otherwise status 
+        // display line edit if any, then string list if any, then keyprompt if any,
+        // otherwise status 
         if(lineEdit.getState() == Running)
             lineEdit.display(h-1,0);
         else if(stringList.getState()==Running)
             stringList.display();
-        else
+        else if(req.running && req.prompt.size()!=0){
+            attrset(COLOR_PAIR(0)|A_BOLD);
+            mvaddstr(h-1,0,req.prompt.c_str());
+            attrset(COLOR_PAIR(0));
+        } else
             // else the status msg.
             displayStatus();
         refresh();
@@ -282,9 +292,10 @@ string InputManager::getString(string p,bool *aborted){
     return rv;
 }
     
-int InputManager::getKey(){
+int InputManager::getKey(const char *p){
     lock();
     req.startRequest(InputReqKey);
+    req.prompt = p?p:"";
     pthread_cond_wait(&cond,&mutex);
     int rv = req.intout;
     unlock();

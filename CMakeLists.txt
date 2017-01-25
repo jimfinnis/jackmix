@@ -17,7 +17,7 @@ add_definitions(${JACK_DEFINITIONS} -Wall)
 
 set(SOURCES main.cpp tokeniser.cpp tokens.cpp ctrl.cpp value.cpp
     parser.cpp save.cpp process.cpp lineedit.cpp stringlist.cpp
-    channel.cpp diamond.cpp fx.cpp plugins.cpp monitor.cpp
+    channel.cpp diamond.cpp fx.cpp plugins.cpp monitor.cpp screen.cpp
     screenmain.cpp
     )
 
