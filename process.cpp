@@ -32,7 +32,7 @@ static jack_port_t *output[2];
 // statics of Process
 volatile bool Process::parsedAndReady=false;
 RingBuffer<MonitorData> Process::monring(20);
-RingBuffer<MonitorCommand> Process::moncmdring(20);
+RingBuffer<ProcessCommand> Process::moncmdring(20);
 uint32_t Process::samprate=0;
 PeakMonitor Process::masterMonL("masterL"),Process::masterMonR("masterR");
 Value *Process::masterPan,*Process::masterGain;
@@ -92,12 +92,12 @@ bool Process::pollMonRing(MonitorData *p){
     return rd;
 }
 
-void Process::writeCmd(MonitorCommandType cmd,
+void Process::writeCmd(ProcessCommandType cmd,
                        float v,class Channel *c,int i){
-    writeCmd(MonitorCommand(cmd,v,c,i));
+    writeCmd(ProcessCommand(cmd,v,c,i));
 }    
 
-void Process::writeCmd(MonitorCommand cmd){
+void Process::writeCmd(ProcessCommand cmd){
     if(moncmdring.canWrite()){
         moncmdring.write(cmd);
     }
@@ -109,7 +109,7 @@ void Process::writeCmd(MonitorCommand cmd){
  * Processing and callbacks
  */
 
-void Process::processMonitorCommand(MonitorCommand& c){
+void Process::processCommand(ProcessCommand& c){
     switch(c.cmd){
     case ChangeGain:
         c.chan->gain->nudge(c.v);
@@ -237,10 +237,10 @@ int Process::callbackProcess(jack_nframes_t nframes, void *arg){
     }
     
     // read any commands from the monitor
-    MonitorCommand cmd;
+    ProcessCommand cmd;
     while(moncmdring.getReadSpace()){
         moncmdring.read(cmd);
-        processMonitorCommand(cmd);
+        processCommand(cmd);
     }
     
     return 0;

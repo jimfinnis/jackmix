@@ -116,18 +116,18 @@ void MainScreen::displayChan(int i,ChanMonData* c,bool cur){
 void MainScreen::commandGainNudge(float v){
     if(curchanptr){
         if(curchanptr->gain->db)v*=0.1f;
-        Process::writeCmd(MonitorCommand(MonitorCommandType::ChangeGain,curchanptr,v));
+        Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeGain,curchanptr,v));
     } else {
         v*=0.1f; // master gain is always log
-        Process::writeCmd(MonitorCommand(MonitorCommandType::ChangeMasterGain,NULL,v));
+        Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeMasterGain,NULL,v));
     }
 }    
 
 void MainScreen::commandPanNudge(float v){
     if(curchanptr)
-        Process::writeCmd(MonitorCommand(MonitorCommandType::ChangePan,curchanptr,v));
+        Process::writeCmd(ProcessCommand(ProcessCommandType::ChangePan,curchanptr,v));
     else 
-        Process::writeCmd(MonitorCommand(MonitorCommandType::ChangeMasterPan,NULL,v));
+        Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeMasterPan,NULL,v));
 }
 
 Screen *MainScreen::flow(InputManager *im){
@@ -140,7 +140,7 @@ Screen *MainScreen::flow(InputManager *im){
             bool ab;
             string name = im->getString("New channel name",&ab);
             if(!ab && name.size()>0)
-                Process::writeCmd(MonitorCommand(MonitorCommandType::AddChannel,name,chans));
+                Process::writeCmd(ProcessCommand(ProcessCommandType::AddChannel,name,chans));
         }
             break;
         case 'w':{
@@ -162,10 +162,10 @@ Screen *MainScreen::flow(InputManager *im){
 //            regenChainData(curparam);
             break;
         case 'm':case 'M':
-            Process::writeCmd(MonitorCommand(MonitorCommandType::ChannelMute,curchanptr));
+            Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelMute,curchanptr));
             break;
         case 's':case 'S':
-            Process::writeCmd(MonitorCommand(MonitorCommandType::ChannelSolo,curchanptr));
+            Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelSolo,curchanptr));
             break;
         case 10:
 //TODO

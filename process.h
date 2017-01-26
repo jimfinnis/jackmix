@@ -11,6 +11,7 @@
 
 #include "ringbuffer.h"
 #include "monitor.h"
+#include "proccmds.h"
 
 struct Process {
     static jack_client_t *client;
@@ -19,7 +20,7 @@ struct Process {
     // process thread -> main thread, monitoring data
     static RingBuffer<MonitorData> monring;
     // main thread -> process thread, commands
-    static RingBuffer<MonitorCommand> moncmdring;
+    static RingBuffer<ProcessCommand> moncmdring;
     /// sample rate 
     static uint32_t samprate;
     
@@ -44,15 +45,15 @@ struct Process {
     
     /// add a command to be communicated to the process thread.
     /// Deprecated.
-    static void writeCmd(MonitorCommandType cmd,
+    static void writeCmd(ProcessCommandType cmd,
                          float v,class Channel *c,int i);
     
     /// add a command to be communicated to the process thread.
-    static void writeCmd(MonitorCommand cmd);
+    static void writeCmd(ProcessCommand cmd);
     
     
     // handle a command coming in on the command ring buffer
-    static void processMonitorCommand(MonitorCommand& c);
+    static void processCommand(ProcessCommand& c);
     
     
     // sample rate change callback
