@@ -7,6 +7,7 @@
 #include "monitor.h"
 #include "screen.h"
 #include "process.h"
+#include "save.h"
 
 #include "help.h"
 #include <ncurses.h>
@@ -133,11 +134,27 @@ Screen *MainScreen::flow(InputManager *im){
     for(;;){
         int c = im->getKey();
         switch(c){
-        case 'a':
-//TODO            getKey("Stereo or mono [1/2]",&MainScreen::keyMonoOrStereoChannel);
+        case 'a':{
+            c=im->getKey("Stereo or mono","12sm");
+            int chans = (c=='1' || c=='m') ? 1:2;
+            bool ab;
+            string name = im->getString("New channel name",&ab);
+            if(!ab && name.size()>0)
+                Process::writeCmd(MonitorCommand(MonitorCommandType::AddChannel,name,chans));
+        }
             break;
-        case 'w':
-//TODO            beginLineEdit("Filename",&MainScreen::lineFinishedSaveFile);
+        case 'w':{
+            bool ab;
+            string name =im->getString("Filename",&ab);
+            if(!ab){
+                // we'd better lock, although nothing should be writing
+                // this state.
+                im->lock();
+                saveConfig(name.c_str());
+                im->unlock();
+            }
+            im->setStatus("Saved.",2);
+        }
             break;
         case 'c':case 'C':
                 ;  // RETURN NEW STATE HERE
@@ -171,7 +188,7 @@ Screen *MainScreen::flow(InputManager *im){
         case KEY_RIGHT:
             commandPanNudge(1);break;
         case 'q':case 'Q':
-            c = im->getKey("are you sure?");
+            c = im->getKey("are you sure?","yn");
             if(c=='y'||c=='Y')return NULL;
         default:break;
         }

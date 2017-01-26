@@ -131,8 +131,9 @@ struct InputRequest {
     InputRequestType t=InputReqIdle;
     bool running=false;
     // the request - I'm not going to risk putting this lot into a union.
-    std::string prompt;
-    std::vector<std::string> list;
+    std::string prompt; // prompt string - for getKey() may be empty
+    std::string validKeys; // used for getKey(), if empty any key is fine
+    std::vector<std::string> list; // list of strings for StringList
     
     // the result
     bool aborted; // true if we should ignore the result
@@ -178,7 +179,6 @@ class MonitorThread {
     
     void loop(); // the main loop
 
-    void setStatus(string s,double t); // msg, time to show
     void displayStatus();
     
     static MonitorThread *instance;
@@ -192,6 +192,7 @@ public:
     
     static void lock();
     static void unlock();
+    void setStatus(string s,double t); // msg, time to show
     
     MonitorThread();
     ~MonitorThread();
@@ -214,10 +215,16 @@ public:
     void lock();
     void unlock();
     
+    // calls lock() and unlock() around a call to the monitor thread's code
+    void setStatus(string s,double t); // msg, time to show
+    
     // blocking input routines - these set a request and then wait for a condition
     // variable. They then read back the result.
     std::string getString(std::string p,bool *aborted);
-    int getKey(const char *prompt=NULL); // might be null, in which case there's no prompt
+    int getKey(
+               const char *prompt=NULL,  // might be null, in which case there's no prompt
+               const char *keys=NULL     // might be null, in which case any key is fine
+               ); 
     std::string getFromList(std::string p,
                             std::vector<std::string>& l,
                             bool *aborted); // may return ""

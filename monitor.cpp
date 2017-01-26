@@ -156,6 +156,8 @@ void MonitorThread::loop(){
             EditState newst;
             switch(req.t){
             case InputReqKey:
+                if(req.validKeys.size()>0 && req.validKeys.find((char)k)==string::npos)
+                    break; // abort if not a valid key
                 lock();
                 req.intout=k;
                 req.setDone();
@@ -276,6 +278,16 @@ void InputManager::flow(){
     }
 }
 
+void InputManager::setStatus(string s,double t){
+    // this is called from the main thread, so we need
+    // to lock.
+    lock();
+    MonitorThread::get()->setStatus(s,t);
+    unlock();
+}
+    
+
+
 string InputManager::getString(string p,bool *aborted){
     lock();
     // fill in the request
@@ -292,10 +304,16 @@ string InputManager::getString(string p,bool *aborted){
     return rv;
 }
     
-int InputManager::getKey(const char *p){
+int InputManager::getKey(const char *p,const char *k){
     lock();
     req.startRequest(InputReqKey);
     req.prompt = p?p:"";
+    if(k){
+        stringstream ss;
+        ss << req.prompt << " [" << k << "]";
+        req.prompt = ss.str();
+    }
+    req.validKeys = k?k:"";
     pthread_cond_wait(&cond,&mutex);
     int rv = req.intout;
     unlock();

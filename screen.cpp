@@ -21,6 +21,7 @@ void Screen::title(const char *s){
 }
 
 
+
 void Screen::drawVertBar(int y, int x, int h, int w, 
                             float v,Value *rv,BarMode mode,bool bold){
     float mn,mx;

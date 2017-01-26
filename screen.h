@@ -31,6 +31,7 @@ public:
 protected:
     
     void title(const char *s);
+    void setStatus(const char *s,double t=2);
     // v is 0-1 linear unless rv (range value) is present. We treat v and rv separately
     // so that we can store the value to show, passing it from process to main thread in
     // a ring buffer.
