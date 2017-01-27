@@ -68,7 +68,6 @@ MonitorThread::MonitorThread(){
 
 MonitorThread::~MonitorThread(){
     lock();
-    instance = NULL;
     requestStop=true;
     unlock();
     for(;;){
@@ -77,6 +76,7 @@ MonitorThread::~MonitorThread(){
         if(!running)break;
         unlock();
     }
+    instance = NULL;
     unlock();
 }
 
@@ -265,15 +265,10 @@ void MonitorThread::displayStatus(){
 }
 
 void InputManager::flow(){
-    Screen *sc = &scrMain;
-    
-    while(sc){
-        lock();
-        curscreen = sc;
-        unlock();
-        
-        sc = sc->flow(this);
-        
+    go(&scrMain);
+    for(;;){
+        curscreen->flow(this);
+        if(!curscreen)return; // the screen did go(NULL)
         usleep(12000);
     }
 }

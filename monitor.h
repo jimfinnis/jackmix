@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "exception.h"
+#include "stack.h"
 #include "channel.h"
 #include "timeutils.h"
 #include "lineedit.h"
@@ -145,6 +146,7 @@ public:
 // until one of those returns false indicating it's time to quit.
 
 class InputManager {
+    Stack<class Screen *,8> screenStack;
 public:
     InputManager(){
     }
@@ -152,6 +154,24 @@ public:
     void flow();
     void lock();
     void unlock();
+    
+    // must be the last thing a screen flow() does before returning.
+    // If NULL, the program exits. SHOULD ONLY BE CALLED FROM MAIN THREAD.
+    void go(Screen *s){
+        lock();
+        curscreen=s;
+        unlock();
+    }
+    
+    // push the current screen onto the stack
+    void push(){
+        screenStack.push(curscreen);
+    }
+    
+    // go back to the pushed screen (will lock)
+    void pop(){
+        go(screenStack.pop());
+    }
     
     // calls lock() and unlock() around a call to the monitor thread's code
     void setStatus(string s,double t); // msg, time to show

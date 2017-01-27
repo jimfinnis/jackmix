@@ -130,67 +130,65 @@ void MainScreen::commandPanNudge(float v){
         Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeMasterPan,NULL,v));
 }
 
-Screen *MainScreen::flow(InputManager *im){
-    for(;;){
-        int c = im->getKey();
-        switch(c){
-        case 'a':{
-            c=im->getKey("Stereo or mono","12sm");
-            int chans = (c=='1' || c=='m') ? 1:2;
-            bool ab;
-            string name = im->getString("New channel name",&ab);
-            if(!ab && name.size()>0)
-                Process::writeCmd(ProcessCommand(ProcessCommandType::AddChannel,name,chans));
+void MainScreen::flow(InputManager *im){
+    int c = im->getKey();
+    switch(c){
+    case 'a':{
+        c=im->getKey("Stereo or mono","12sm");
+        int chans = (c=='1' || c=='m') ? 1:2;
+        bool ab;
+        string name = im->getString("New channel name",&ab);
+        if(!ab && name.size()>0)
+            Process::writeCmd(ProcessCommand(ProcessCommandType::AddChannel,name,chans));
+    }
+        break;
+    case 'w':{
+        bool ab;
+        string name =im->getString("Filename",&ab);
+        if(!ab){
+            // we'd better lock, although nothing should be writing
+            // this state.
+            im->lock();
+            saveConfig(name.c_str());
+            im->unlock();
         }
-            break;
-        case 'w':{
-            bool ab;
-            string name =im->getString("Filename",&ab);
-            if(!ab){
-                // we'd better lock, although nothing should be writing
-                // this state.
-                im->lock();
-                saveConfig(name.c_str());
-                im->unlock();
-            }
-            im->setStatus("Saved.",2);
-        }
-            break;
-        case 'c':case 'C':
-                ;  // RETURN NEW STATE HERE
-//TODO            gotoState(ChainList);
-//            regenChainData(curparam);
-            break;
-        case 'm':case 'M':
-            Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelMute,curchanptr));
-            break;
-        case 's':case 'S':
-            Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelSolo,curchanptr));
-            break;
-        case 10:
-//TODO
-            if(curchan>=0)
-                ;  // RETURN NEW STATE HERE
-            break;
-        case 'x':
-            curchan++;
-            break;
-        case 'z':
-            if(--curchan<-1)
-                curchan=0;
-            break;
-        case KEY_UP:
-            commandGainNudge(1);break;
-        case KEY_DOWN:
-            commandGainNudge(-1);break;
-        case KEY_LEFT:
-            commandPanNudge(-1);break;
-        case KEY_RIGHT:
-            commandPanNudge(1);break;
-        case 'q':case 'Q':
-            c = im->getKey("are you sure?","yn");
-            if(c=='y'||c=='Y')return NULL;
-        default:break;
-        }
+        im->setStatus("Saved.",2);
+    }
+        break;
+    case 'c':case 'C':
+        ;  // GO TO NEW STATE HERE
+        //TODO            gotoState(ChainList);
+        //            regenChainData(curparam);
+        break;
+    case 'm':case 'M':
+        Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelMute,curchanptr));
+        break;
+    case 's':case 'S':
+        Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelSolo,curchanptr));
+        break;
+    case 10:
+        //TODO
+        if(curchan>=0)
+            ;  // TODO  - GOTO NEW STATE HERE
+        break;
+    case 'x':
+        curchan++;
+        break;
+    case 'z':
+        if(--curchan<-1)
+            curchan=0;
+        break;
+    case KEY_UP:
+        commandGainNudge(1);break;
+    case KEY_DOWN:
+        commandGainNudge(-1);break;
+    case KEY_LEFT:
+        commandPanNudge(-1);break;
+    case KEY_RIGHT:
+        commandPanNudge(1);break;
+    case 'q':case 'Q':
+        c = im->getKey("are you sure?","yn");
+        if(c=='y'||c=='Y')im->go(NULL);
+    default:break;
     }
 }

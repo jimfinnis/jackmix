@@ -19,15 +19,13 @@ enum BarMode { Gain, // green/yellow/red
 
 
 /// definition of a screen in the user interface.
-/// flow() is run from the main thread. When it returns with NULL, the UI
-/// and program will exit. Otherwise we go to the screen whose address is given
-/// (which may be "this")
+/// flow() is run from the main thread an just runs over and over.
 /// display() is run by the non-blocking UI thread every few milliseconds.
 
 class Screen {
 public:
     virtual void display(struct MonitorData *d)=0;
-    virtual Screen *flow(class InputManager *im)=0;
+    virtual void flow(class InputManager *im)=0;
 protected:
     
     void title(const char *s);
@@ -44,7 +42,7 @@ protected:
 extern class MainScreen : public Screen {
 public:
     virtual void display(struct MonitorData *d);
-    virtual Screen *flow(class InputManager *im);
+    virtual void flow(class InputManager *im);
 
 private:
     int curchan=0;
