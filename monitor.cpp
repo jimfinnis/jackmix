@@ -201,6 +201,11 @@ void MonitorThread::loop(){
             sc->display(&mdat);
         }
         
+        // copy into a buffer for IM to look at (it should lock too)
+        lock();
+        lastReceived=mdat;
+        unlock();
+        
         // do the display, first the screen
         static unsigned int ct=0;
         mvprintw(0,40,"%ud",ct++);

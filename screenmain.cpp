@@ -5,9 +5,11 @@
  */
 
 #include "monitor.h"
-#include "screen.h"
 #include "process.h"
 #include "save.h"
+
+#include "screenmain.h"
+#include "screenchan.h"
 
 #include "help.h"
 #include <ncurses.h>
@@ -169,7 +171,7 @@ void MainScreen::flow(InputManager *im){
     case 10:
         //TODO
         if(curchan>=0)
-            ;  // TODO  - GOTO NEW STATE HERE
+            im->go(&scrChan);
         break;
     case 'x':
         curchan++;

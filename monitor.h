@@ -21,6 +21,8 @@
 #include "lineedit.h"
 #include "stringlist.h"
 
+#include "screenmain.h"
+
 using namespace std;
 
 extern class Screen *curscreen; // the current screen. LOCK IT.
@@ -116,6 +118,9 @@ class MonitorThread {
     LineEdit lineEdit;
     StringList stringList;
     
+    // we do sometimes need to read this
+    MonitorData lastReceived;
+
     void loop(); // the main loop
 
     void displayStatus();
@@ -123,6 +128,11 @@ class MonitorThread {
     static MonitorThread *instance;
 public:
     int w,h; // screen dimensions
+    
+    // copying this is costly - do it if you have to, otherwise lock - read - unlock
+    MonitorData *getLastReceived(){
+        return &lastReceived;
+    }
     
     // there's only one of these - return this to get the instance. Ugly.
     static MonitorThread *get(){
