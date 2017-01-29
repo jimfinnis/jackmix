@@ -174,6 +174,7 @@ void MainScreen::flow(InputManager *im){
     case 10:
         if(curchan>=0){
             im->push();
+            scrChan.setChan(curchan);
             im->go(&scrChan);
         }
         break;
