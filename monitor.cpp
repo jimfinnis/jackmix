@@ -206,9 +206,11 @@ void MonitorThread::loop(){
         lastReceived=mdat;
         unlock();
         
-        // do the display, first the screen
+        // DEBUGGING - shows a running counter so we can check we're not stalled
         static unsigned int ct=0;
-        mvprintw(0,40,"%ud",ct++);
+        mvprintw(h-1,w-8,"%08u",ct++);
+        
+        // do the display, first the screen
         
         // display line edit if any, then string list if any, then keyprompt if any,
         // otherwise status 
@@ -225,28 +227,6 @@ void MonitorThread::loop(){
             displayStatus();
         refresh();
         usleep(10000);
-    }
-}
-
-void MonitorThread::showHelp(const char ***h){
-    attrset(COLOR_PAIR(0));
-    for(int x=0;h[x];x++){
-        for(int y=0;h[x][y];y++){
-            move(y,x*40);
-            const char *s = h[x][y];
-            while(*s){
-                switch(*s){
-                case '[':attron(A_BOLD);break;
-                case ']':attroff(A_BOLD);break;
-                case '{':attron(COLOR_PAIR(PAIR_HILIGHT));break;
-                case '}':attroff(COLOR_PAIR(PAIR_HILIGHT));break;
-                default:
-                    addch(*s);
-                    break;
-                }
-                s++;
-            }
-        }
     }
 }
 

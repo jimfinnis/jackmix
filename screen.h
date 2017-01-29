@@ -26,6 +26,7 @@ class Screen {
 public:
     virtual void display(struct MonitorData *d)=0;
     virtual void flow(class InputManager *im)=0;
+    virtual void onEntry(){}
 protected:
     
     void title(const char *s);
@@ -39,6 +40,7 @@ protected:
                      float v,class Value *rv,BarMode mode,bool bold);
 };
 
+#include "screenhelp.h"
 
 
 #endif /* __SCREEN_H */

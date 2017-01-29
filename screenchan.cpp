@@ -95,6 +95,10 @@ void ChanScreen::flow(InputManager *im){
     int c = im->getKey();
     
     switch(c){
+    case 'h':
+        im->push();
+        im->go(&scrHelp);
+        break;
     case 'a':
         if(!validchan)
             im->setStatus("no valid channel selected",5);
@@ -152,7 +156,7 @@ void ChanScreen::flow(InputManager *im){
     }
         break;
     case 'q':case 10:
-        im->go(&scrMain);
+        im->pop();
         break;
     default:break;
     }

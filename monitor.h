@@ -147,7 +147,6 @@ public:
     ~MonitorThread();
     
     void threadfunc();
-    static void showHelp(const char ***h);
 };
 
 // this class handles the blocking IO running in the main thread. It sends messages
@@ -171,6 +170,8 @@ public:
         lock();
         curscreen=s;
         unlock();
+        if(curscreen)
+            curscreen->onEntry();
     }
     
     // push the current screen onto the stack

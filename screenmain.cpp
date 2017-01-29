@@ -10,8 +10,8 @@
 
 #include "screenmain.h"
 #include "screenchan.h"
+#include "screenchain.h"
 
-#include "help.h"
 #include <ncurses.h>
 
 MainScreen scrMain;
@@ -135,6 +135,10 @@ void MainScreen::commandPanNudge(float v){
 void MainScreen::flow(InputManager *im){
     int c = im->getKey();
     switch(c){
+    case 'h':
+        im->push();
+        im->go(&scrHelp);
+        break;
     case 'a':{
         c=im->getKey("Stereo or mono","12sm");
         int chans = (c=='1' || c=='m') ? 1:2;
@@ -158,9 +162,8 @@ void MainScreen::flow(InputManager *im){
     }
         break;
     case 'c':case 'C':
-        ;  // GO TO NEW STATE HERE
-        //TODO            gotoState(ChainList);
-        //            regenChainData(curparam);
+        im->push();
+        im->go(&scrChain);
         break;
     case 'm':case 'M':
         Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelMute,curchanptr));
@@ -169,9 +172,10 @@ void MainScreen::flow(InputManager *im){
         Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelSolo,curchanptr));
         break;
     case 10:
-        //TODO
-        if(curchan>=0)
+        if(curchan>=0){
+            im->push();
             im->go(&scrChan);
+        }
         break;
     case 'x':
         curchan++;
