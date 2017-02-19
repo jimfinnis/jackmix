@@ -142,12 +142,28 @@ void MainScreen::flow(InputManager *im){
     case 'a':{
         c=im->getKey("Stereo or mono","12sm");
         int chans = (c=='1' || c=='m') ? 1:2;
-        bool ab;
+        bool ab,isret;
         string name = im->getString("New channel name",&ab);
-        if(!ab && name.size()>0)
-            Process::writeCmd(ProcessCommand(ProcessCommandType::AddChannel,name,chans));
-    }
+        if(!ab && name.size()>0){
+            if(Channel::getChannel(name,isret)){
+                im->setStatus("Channel already exists",4);
+            } else {
+                Process::writeCmd(ProcessCommand(ProcessCommandType::AddChannel,name,chans));
+            }
+        }
         break;
+    }
+    case 'r':{
+        if(curchanptr){
+            if(curchanptr->isReturn())
+                im->setStatus("Channel is a return channel - delete the chain instead",4);
+            else if(im->getKey("are you sure?","yn")=='y')
+                Process::writeCmd(ProcessCommand(ProcessCommandType::DelChan,curchanptr));
+        } else
+            im->setStatus("Cannot remove master channel",4);
+        break;
+    }
+        
     case 'w':{
         bool ab;
         string name =im->getString("Filename",&ab);
@@ -166,10 +182,12 @@ void MainScreen::flow(InputManager *im){
         im->go(&scrChain);
         break;
     case 'm':case 'M':
-        Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelMute,curchanptr));
+        if(curchanptr)
+            Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelMute,curchanptr));
         break;
     case 's':case 'S':
-        Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelSolo,curchanptr));
+        if(curchanptr)
+            Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelSolo,curchanptr));
         break;
     case 10:
         if(curchan>=0){

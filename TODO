@@ -1,4 +1,5 @@
 * add/remove channel
+    - remove must remove any chain data to
 * add/remove chain
     - creates a null chain, ensure that works
     - automatically creates a return channel

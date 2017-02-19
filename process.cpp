@@ -139,6 +139,9 @@ void Process::processCommand(ProcessCommand& c){
         // awkward. 
         c.chan->removeChainInfo(c.arg0);
         break;
+    case DelChan:
+        delete c.chan; // should remove from lists.
+        break;
     case AddSend:{
         // Will leave a dangling value. No biggie.
         Value *v = new Value();

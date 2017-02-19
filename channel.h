@@ -10,6 +10,7 @@
 #include <jack/jack.h>
 #include <vector>
 #include <string>
+#include <algorithm>
 #include <fstream>
 #include "value.h"
 #include "global.h"
@@ -55,7 +56,7 @@ class Channel {
         if(rightport)
             right = (float *)jack_port_get_buffer(rightport,nframes);
     }
-        
+    
     // if mono, only leftport is used - both will be null if this
     // is a return.
     jack_port_t *leftport,*rightport;
@@ -117,10 +118,29 @@ public:
     bool isSolo(){
         return solochan == this;
     }
-        
+    
+    // get a channel
+    static Channel *getChannel(std::string n,bool &isret){
+        std::vector<Channel *>::iterator it;
+        for(it=returnchans.begin();it!=returnchans.end();it++){
+            if((*it)->name == n){
+                isret = true;
+                return (*it);
+            }
+        }
+        for(it=inputchans.begin();it!=inputchans.end();it++){
+            if((*it)->name == n){
+                isret = false;
+                return (*it);
+            }
+        }
+        return NULL;
+    }
+    
     
     Channel(std::string n,int ch,Value *g,Value *p,bool isret,
-            std::string rcn="") : monl(n+"l"), monr(n+"r"){
+            std::string rcn="") : monl(n+"l"), monr(n+"r")
+    {
         name = n;
         mono = ch==1;
         gain = g;
@@ -146,6 +166,14 @@ public:
             inputchans.push_back(this);
     }
     
+    virtual ~Channel(){
+        std::vector<Channel *> &vec = leftport ? inputchans : returnchans;
+        // and apparently C++ is a *good* language?
+        vec.erase(std::remove(vec.begin(),vec.end(),this),vec.end());
+    }
+    
+    
+    
     // add a chain send - if from the parser, leave chain NULL to be resolved.
     void addChainInfo(std::string name,Value *v,bool postfade,ChainInterface *c=NULL){
         chains.push_back(ChainFeed(v,postfade,c));
@@ -163,6 +191,7 @@ public:
     
     static void resolveAllChannelChains(){
         std::vector<Channel *>::iterator it;
+
         for(it=returnchans.begin();it!=returnchans.end();it++){
             (*it)->resolveChains();
         }
@@ -196,8 +225,8 @@ public:
     static void saveAll(std::ostream& out);
     
 };
-    
-    
+
+
 
 
 #endif /* __CHANNEL_H */

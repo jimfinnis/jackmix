@@ -20,6 +20,7 @@ enum ProcessCommandType {
           ChangeSendGain,       // chan,arg0(send index),v
           ChannelMute,          // chan
           ChannelSolo,          // chan
+          DelChan,              // chan
           ChangeEffectParam,    // vp, v
           DelSend,              // chan,arg0(send index)
           TogglePrePost,        // chan,arg0(send index)
