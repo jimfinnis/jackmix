@@ -46,6 +46,7 @@ static const char *MainHelpCol2[] = {
     "[        Chain mode]",
     "{ENTER}    - return to main mode",
     "{TAB}      - list->chain->effect",
+    "{a}        - add chain",
     "[     Chain mode: list]",
     "{UP/DOWN}  - select chain",
     "[     Chain mode: chain]",

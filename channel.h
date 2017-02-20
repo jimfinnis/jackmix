@@ -64,6 +64,11 @@ class Channel {
     // these cache the port buffers, but only inside one call to process()
     float *left,*right;
     
+    
+    PeakMonitor monl,monr;
+    bool mute=false;
+    static Channel *solochan;
+    
     void resolveChains(){
         // resolve sends
         for(unsigned int i=0;i<chainNames.size();i++){
@@ -71,6 +76,22 @@ class Channel {
         }
         
         // and returns
+        resolveReturnChannel();
+    }
+    
+
+public:
+    Value *pan,*gain;
+    // names of chains, same indexing as "chains"
+    std::vector<std::string> chainNames;
+    // pointers to actual chains, built from chainNames after parsing.
+    std::vector<ChainFeed> chains;
+    
+    // if a return channel, resolve the buffers to be the output of the last
+    // chain we are a return for. Called both from resolveChains() and from
+    // the chain create code in the UI.
+    
+    void resolveReturnChannel(){
         if(!leftport) { // we are a return, and returnChainName should be valid
             ChainInterface *ch = ChainInterface::find(returnChainName);
             left = ch->leftoutbuf;
@@ -78,16 +99,6 @@ class Channel {
         }
     }
     
-    PeakMonitor monl,monr;
-    bool mute=false;
-    static Channel *solochan;
-    
-public:
-    Value *pan,*gain;
-    // names of chains, same indexing as "chains"
-    std::vector<std::string> chainNames;
-    // pointers to actual chains, built from chainNames after parsing.
-    std::vector<ChainFeed> chains;
     
     // is this a return channel?
     bool isReturn(){

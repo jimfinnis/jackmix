@@ -81,12 +81,6 @@ MonitorThread::~MonitorThread(){
 }
 
 void MonitorThread::threadfunc(){
-    sigset_t set;
-    sigemptyset(&set);
-    sigaddset(&set,SIGINT);
-    sigaddset(&set,SIGQUIT);
-    pthread_sigmask(SIG_BLOCK,&set,NULL);
-    
     // initialise curses
     
     initscr();
@@ -252,9 +246,16 @@ void MonitorThread::displayStatus(){
 void InputManager::flow(){
     go(&scrMain);
     for(;;){
-        curscreen->flow(this);
-        if(!curscreen)return; // the screen did go(NULL)
-        usleep(12000);
+        try{
+            curscreen->flow(this);
+            if(!curscreen)return; // the screen did go(NULL)
+            usleep(12000);
+        }catch(std::string& s){
+            endwin();
+            cout << "Fatal error: " << s << endl;
+            exit(1);
+        }
+
     }
 }
 

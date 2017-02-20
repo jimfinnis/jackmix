@@ -162,9 +162,24 @@ static void commandParamNudge(float v){
 void ChainScreen::flow(InputManager *im){
     int c = im->getKey();
     PluginInstance *fx;
+    bool ab;
+    string name;
+    
     switch(c){
     case 10:
         im->pop(); // back to the previous screen
+        break;
+    case 'a':
+        name = im->getString("Chain name",&ab);
+        if(!ab){
+            if(ChainInterface::findornull(name)){
+                im->setStatus("chain already exists",4);
+            } else {
+                im->lock();
+                ChainInterface::addNewEmptyChain(name);
+                im->unlock();
+            }
+        }
         break;
     case 9: // tab
         switch(chainListMode){

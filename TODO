@@ -1,10 +1,12 @@
-* add/remove channel
-    - remove must remove any chain data to
 * add/remove chain
     - creates a null chain, ensure that works
     - automatically creates a return channel
     - removal must remove all sends for this chain from channels
     - remove the return channel
+
+progress: can add empty null chain (the return channel's left/right
+buffers will be null).    
+
 * add/remove effect from chain
 * add control to value
     - ideally it would be possible to either select an existing

@@ -79,9 +79,7 @@ void MainScreen::displayChan(int i,ChanMonData* c,bool cur){
             if(ch->isReturn()){
                 attrset(COLOR_PAIR(0)|A_BOLD);
                 string rn = ch->getReturnName();
-                rn.resize(COLWIDTH-3);
-                rn = "("+rn+")";
-                
+                rn = "("+rn.substr(0,COLWIDTH-3)+")";
                 mvaddstr(1,x,rn.c_str());
             }
             if(ch->isMute()){

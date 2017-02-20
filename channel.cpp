@@ -77,6 +77,11 @@ void Channel::mix(float *__restrict leftout,
                   float *__restrict rightout,int offset,int nframes){
     static float tmpl[BUFSIZE],tmpr[BUFSIZE];
     
+    // skip any channels without the required buffers - i.e. return chans from
+    // chains with no FX.
+    if(!left || (!mono && !right))
+        return;
+    
     // mix into the temp buffers
     if(mono){
         panmono(tmpl,tmpr,left+offset,

@@ -16,6 +16,7 @@
 #include "global.h"
 #include "parser.h"
 #include "fx.h"
+#include "channel.h"
 #include "save.h"
 
 using namespace std;
@@ -24,6 +25,11 @@ vector<ChainInterface *> chainlist;
 Value *parseValue(Bounds b,Value *v=NULL);
 
 struct Chain : public ChainInterface {
+    Chain() : ChainInterface() {
+        // initially null, because there are no FX.
+        leftoutbuf=NULL;
+        rightoutbuf=NULL;
+    }
     // vector so we can run in order
     vector<PluginInstance *> fxlist;
     // map so we can find
@@ -127,6 +133,19 @@ struct Chain : public ChainInterface {
 /// The effects chains are stored as an unordered map of string to chain.
 
 static unordered_map<string,Chain> chains;
+
+void ChainInterface::addNewEmptyChain(string n){
+    Chain& chain = chains.emplace(n,Chain()).first->second;
+    chain.name = n;
+    chainlist.push_back(&chain);
+    string retname = "R"+n;
+    Value *g = new Value();
+    g->setdb()->setrange(-60,0)->setdef(-50)->reset();
+    Value *p = new Value();
+    p->setrange(0,1)->setdef(0.5)->reset();
+    Channel *c = new Channel(retname,2,g,p,true,n);
+    c->resolveReturnChannel();
+}
 
 
 // parse an effect within a chain, and add to chain
@@ -274,6 +293,11 @@ ChainInterface *ChainInterface::find(std::string name){
     if(chains.find(name)==chains.end())
         throw _("chain %s does not exist",name.c_str());
     
+    return &chains[name];
+}
+ChainInterface *ChainInterface::findornull(std::string name){
+    if(chains.find(name)==chains.end())
+        return NULL;
     return &chains[name];
 }
 

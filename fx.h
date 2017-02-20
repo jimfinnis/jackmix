@@ -45,6 +45,7 @@ struct ChainInterface {
     virtual void run(unsigned int nframes)=0;
     
     static ChainInterface *find(std::string name);
+    static ChainInterface *findornull(std::string name);
     
     static void zeroAllInputs();
     
@@ -57,6 +58,7 @@ struct ChainInterface {
     
     void save(std::ostream &out,std::string name);
     static void saveAll(std::ostream &out);
+    static void addNewEmptyChain(std::string n);
     
     // generate a structure containing the connection and parameter data
     // for all fx in the chain, for editing. Messy, slightly, but it means
