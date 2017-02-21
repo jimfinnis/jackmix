@@ -112,6 +112,9 @@ void ChainScreen::display(MonitorData *d){
                 case 1:
                     attrset(COLOR_PAIR(PAIR_REDTEXT));
                     addstr("RIGHT");break;
+                case 2:
+                    attrset(COLOR_PAIR(PAIR_REDTEXT));
+                    addstr("ZERO");break;
                 default:
                     addstr(id.fromeffect.c_str());
                     addstr(":");
@@ -235,12 +238,14 @@ void ChainScreen::remapInput(InputManager *im){
           setstr(fx->name)->
           setstr2(inputToChange);
     
-    char cc = im->getKey("From left or right chain input, or effect output?","lre");
+    char cc = im->getKey("From left or right chain input, zero, or effect output?","lrez");
     
     if(cc=='l')
         cmd.arg1=0;
     else if(cc=='r')
         cmd.arg1=1;
+    else if(cc=='z')
+        cmd.arg1=2;
     else {
         cmd.arg1=-1;
         

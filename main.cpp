@@ -86,6 +86,10 @@ int main(int argc,char *argv[]){
     
     bool nogui=false;
     
+    extern float *zeroBuf;
+    zeroBuf = new float[BUFSIZE];
+    for(int i=0;i<BUFSIZE;i++)zeroBuf[i]=0;
+    
     try {
         const char *filename="config";
         for(;;){

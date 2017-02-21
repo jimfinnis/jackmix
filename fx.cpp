@@ -23,12 +23,17 @@ using namespace std;
 
 vector<ChainInterface *> chainlist;
 Value *parseValue(Bounds b,Value *v=NULL);
+float *zeroBuf;
 
 struct Chain : public ChainInterface {
     Chain() : ChainInterface() {
         // initially null, because there are no FX.
-        leftoutbuf=NULL;
-        rightoutbuf=NULL;
+        leftoutbuf=zeroBuf;
+        rightoutbuf=zeroBuf;
+        leftouteffect="zero";
+        rightouteffect="zero";
+        leftoutport="zero";
+        rightoutport="zero";
     }
     // vector so we can run in order
     vector<PluginInstance *> fxlist;
@@ -64,6 +69,10 @@ struct Chain : public ChainInterface {
                     cout << "Right input";
                     buf = inpright;
                     break;
+                case 2:
+                    cout << "Zero";
+                    buf = zeroBuf;
+                    break;
                 case -1:
                     cout << "Port " << ipd.fromeffect << ":" << ipd.fromport;
                     
@@ -84,6 +93,7 @@ struct Chain : public ChainInterface {
     
     // resolve a possibly short port name to a proper one
     string getRealPortName(string effect,string port){
+        if(effect=="zero")return "zero";
         if(fxmap.find(effect)==fxmap.end())
             throw _("cannot find effect '%s'",effect.c_str());
         PluginInstance *inst = fxmap[effect];
@@ -93,6 +103,7 @@ struct Chain : public ChainInterface {
     
     
     float *getPort(string effect,string port){
+        if(effect=="zero")return zeroBuf;
         if(fxmap.find(effect)==fxmap.end())
             throw _("cannot find source effect '%s'",effect.c_str());
         PluginInstance *inst = fxmap[effect];
@@ -204,6 +215,7 @@ void parseEffect(Chain &c){
               string outname = getnextident();
               if(outname=="LEFT")ipd.channel = 0;
               else if(outname=="RIGHT")ipd.channel = 1;
+              else if(outname=="ZERO")ipd.channel = 2;
               else {
               ipd.fromeffect = outname;
               if(tok.getnext()!=T_COLON)expected("':'");
@@ -371,6 +383,8 @@ void Chain::save(ostream &out,string name){
                 ss << "LEFT";break;
             case 1:
                 ss << "RIGHT";break;
+            case 2:
+                ss << "ZERO"; break;
             case -1:
                 ss << ipd.fromeffect << ":\"";
                 ss << getRealPortName(ipd.fromeffect,ipd.fromport);
@@ -508,7 +522,12 @@ void Chain::remapInput(std::string instname,
         // do the remap in the IPD
         ipd.channel = chan;
         // and in the actual plugin
-        float *buf = chan?inpleft:inpright;
+        float *buf;
+        switch(chan){
+        case 0:buf=inpleft;break;
+        case 1:buf=inpright;break;
+        case 2:buf=zeroBuf;break;
+        }    
         (*inst->p->desc->connect_port)(inst->h,portidx,buf);
         inst->connections[portidx]=buf;
     } else {
@@ -521,12 +540,12 @@ void Chain::remapInput(std::string instname,
         // and find the output port
         PluginInstance *outinst = fxmap[outinstname];
         int outidx = outinst->p->getPortIdx(outname);
+        float *buf=outinst->opbufs[outidx];
         
         // and link
         ipd.channel = -1;
         ipd.fromeffect = outinstname;
         ipd.fromport = outname;
-        float *buf=inst->opbufs[outidx];
         (*inst->p->desc->connect_port)(inst->h,portidx,buf);
         inst->connections[portidx]=buf;
     }
