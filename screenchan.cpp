@@ -12,6 +12,7 @@
 #include "screenchan.h"
 
 #include <ncurses.h>
+#include <sstream>
 
 ChanScreen scrChan;
 
@@ -125,7 +126,7 @@ void ChanScreen::flow(InputManager *im){
                 
             }
         }
-    case 'p':
+    case 't':
         if(chan && cursend>=0){
             Process::writeCmd(ProcessCommand(
                                              ProcessCommandType::TogglePrePost,
@@ -153,7 +154,24 @@ void ChanScreen::flow(InputManager *im){
         default:if(cursend>=0)
                   commandSendGainNudge(chan,cursend,v);break;
         }
-    }
+    } break;
+    case 'g':
+        im->editVal("gain",chan->gain);break;
+    case 'p':
+        im->editVal("pan",chan->pan);break;
+    case 'v':
+        switch(curparam){
+        case 0:im->editVal("gain",chan->gain);break;
+        case 1:im->editVal("pan",chan->pan);break;
+        default:
+            if(cursend>=0){
+                ChainFeed& f = chan->chains[cursend];
+                stringstream ss;
+                ss << (f.chain->name) << " send gain";
+                im->editVal(ss.str(),f.gain);
+            }
+            break;
+        }
         break;
     case 'q':case 10:
         im->pop();

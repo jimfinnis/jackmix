@@ -206,6 +206,16 @@ static void commandParamNudge(float v){
     }
 }
 
+static void setParam(InputManager *im){
+    if(chainData && cureffect>=0 && cureffect<(int)chainData->fx.size()){
+        PluginInstance *fx = chainData->fx[cureffect];
+        if(cureffectparam>=0 && cureffectparam<(int)fx->paramsList.size()){
+            Value *p = fx->paramsMap[fx->paramsList[cureffectparam]];
+            im->editVal(fx->paramsList[cureffectparam],p);
+        }
+    }
+}
+
 void ChainScreen::remapInput(InputManager *im){
     PluginInstance *fx;
     bool ab;
@@ -433,6 +443,9 @@ void ChainScreen::flow(InputManager *im){
     case KEY_RIGHT:
         if(chainListMode==Params)
             commandParamNudge(1);
+        break;
+    case 'v':
+        setParam(im);
         break;
     default:break;
     }

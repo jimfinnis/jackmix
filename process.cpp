@@ -115,6 +115,9 @@ void Process::processCommand(ProcessCommand& c){
     case NudgeValue:
         c.vp->nudge(c.v);
         break;
+    case SetValue:
+        c.vp->setTarget(c.v);
+        break;
     case ChannelMute:
         c.chan->toggleMute();
         break;

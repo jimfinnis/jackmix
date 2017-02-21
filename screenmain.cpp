@@ -13,7 +13,7 @@
 #include "screenchain.h"
 
 #include <ncurses.h>
-
+#include <sstream>
 MainScreen scrMain;
 
 #define RIGHTWIDTH 20
@@ -66,10 +66,18 @@ void MainScreen::displayChan(int i,ChanMonData* c,bool cur){
     
     int h = MonitorThread::get()->h;
     
-    
+    Value *pv,*gv;
     if(c){
         l=c->l;
         r=c->r;
+        if(c->chan){
+            pv=c->chan->pan;
+            gv=c->chan->gain;
+        } else {
+            pv = Process::masterPan;
+            gv = Process::masterGain;
+        }
+        
         gain=c->gain;
         pan=c->pan;
         name = c->name;
@@ -93,6 +101,7 @@ void MainScreen::displayChan(int i,ChanMonData* c,bool cur){
         }
     } else {
         l=r=gain=pan=0;
+        pv=gv=NULL;
         name="xxxx";
     }
     
@@ -107,8 +116,8 @@ void MainScreen::displayChan(int i,ChanMonData* c,bool cur){
     // inputs to pan/gain bars are range 0-1 unless a value is given
     drawVertBar(2,x,h-3,1,l,NULL,Gain,false);
     drawVertBar(2,x+2,h-3,1,r,NULL,Gain,false);
-    drawVertBar(2,x+4,h-3,1,gain,NULL,Green,cur);
-    drawVertBar(2,x+6,h-3,1,pan,NULL,Pan,cur);
+    drawVertBar(2,x+4,h-3,1,gain,gv,Green,cur);
+    drawVertBar(2,x+6,h-3,1,pan,pv,Pan,cur);
     
     attrset(COLOR_PAIR(0));
 }    
@@ -135,6 +144,24 @@ void MainScreen::commandPanNudge(float v){
 void MainScreen::flow(InputManager *im){
     int c = im->getKey();
     switch(c){
+    case 'p':
+        if(curchanptr){
+            stringstream ss;
+            ss << curchanptr->name << " pan";
+            im->editVal(ss.str(),curchanptr->pan);
+        } else {
+            im->editVal("Master pan",Process::masterPan);
+        }
+        break;
+    case 'g':
+        if(curchanptr){
+            stringstream ss;
+            ss << curchanptr->name << " gain";
+            im->editVal(ss.str(),curchanptr->gain);
+        } else {
+            im->editVal("Master gain",Process::masterGain);
+        }
+        break;
     case 'h':
         im->push();
         im->go(&scrHelp);

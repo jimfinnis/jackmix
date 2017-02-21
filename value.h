@@ -94,6 +94,8 @@ public:
     /// in update(). Performs db conversion.
     
     void setTarget(float v){
+        if(v>mx)v=mx;
+        if(v<mn)v=mn;
         if(db)
             target=powf(10.0,v*0.1f);
         else

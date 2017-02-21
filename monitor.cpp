@@ -125,6 +125,7 @@ void MonitorThread::loop(){
     while(1){
         Screen *sc;
         getmaxyx(stdscr,h,w);
+        
         lock();
         sc = curscreen;
         if(requestStop)break;
@@ -133,6 +134,7 @@ void MonitorThread::loop(){
             // start a new one
             switch(req.t){
             case InputReqLineEdit:
+            case InputReqEditVal:
                 lineEdit.begin(req.prompt);
                 break;
             case InputReqStringList:
@@ -165,6 +167,18 @@ void MonitorThread::loop(){
                     lock();
                     req.aborted = newst==Aborted;
                     req.strout = lineEdit.consume();
+                    req.setDone();
+                    // signal the other thread
+                    pthread_cond_signal(&cond);
+                    unlock();
+                }
+                break;
+            case InputReqEditVal:
+                newst=lineEdit.handleKey(k);
+                if(newst!=Running){
+                    req.aborted = newst==Aborted;
+                    req.strout = lineEdit.consume();
+                    req.value->setTarget(atof(req.strout.c_str()));
                     req.setDone();
                     // signal the other thread
                     pthread_cond_signal(&cond);
@@ -314,3 +328,16 @@ string InputManager::getFromList(string p,vector<string>& l,bool *aborted){
     unlock();
     return rv;
 }    
+
+void InputManager::editVal(string name,Value *v){
+    lock();
+    req.startRequest(InputReqEditVal);
+    stringstream ss;
+    ss << name << " [" << (v->mn) << ":" << (v->mx) << "]";
+    req.prompt=ss.str();
+    req.value = v;
+    pthread_cond_wait(&cond,&mutex);
+    ///... some time later... the mutex will be locked
+    string rv = req.strout;
+    unlock();
+}

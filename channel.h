@@ -34,7 +34,6 @@ struct ChainFeed {
 
 
 class Channel {
-    std::string name;
     // if ports are null, this is the name of an FX chain. 
     // The left and right buffers will be set to that chain.
     std::string returnChainName;
@@ -81,6 +80,7 @@ class Channel {
     
 
 public:
+    std::string name;
     Value *pan,*gain;
     // names of chains, same indexing as "chains"
     std::vector<std::string> chainNames;

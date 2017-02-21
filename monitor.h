@@ -60,7 +60,7 @@ struct MonitorData {
 
 
 enum InputRequestType {
-    InputReqIdle,InputReqLineEdit,InputReqKey,InputReqStringList
+    InputReqIdle,InputReqLineEdit,InputReqKey,InputReqStringList,InputReqEditVal
 };
     
 // the input request/response - lock the mutex when you edit or read it.
@@ -75,6 +75,7 @@ struct InputRequest {
     std::string prompt; // prompt string - for getKey() may be empty
     std::string validKeys; // used for getKey(), if empty any key is fine
     std::vector<std::string> list; // list of strings for StringList
+    Value *value; // value to edit with editval
     
     // the result
     bool aborted; // true if we should ignore the result
@@ -108,7 +109,6 @@ class MonitorThread {
     
     // these variables should be locked
     bool requestStop,running;
-    
     // status line
     string statusMsg;
     bool statusShowing=false;
@@ -203,6 +203,9 @@ public:
     std::string getFromList(std::string p,
                             std::vector<std::string>& l,
                             bool *aborted);
+    
+    // start editing a value
+    void editVal(std::string name,Value *v);
 };
 
 

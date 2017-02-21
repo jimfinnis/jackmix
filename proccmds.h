@@ -13,7 +13,7 @@
 // in the comment
 
 enum ProcessCommandType {
-          NudgeValue,           // v
+          NudgeValue,           // vp,v(amount)
           ChannelMute,          // chan
           ChannelSolo,          // chan
           DelChan,              // chan
@@ -21,6 +21,7 @@ enum ProcessCommandType {
           TogglePrePost,        // chan,arg0(send index)
           AddSend,              // chan,s(name)
           AddEffect,            // pld,s(inst name),arg0(chain idx)
+          SetValue,             // vp,v(new val)
           // complex one this:
           //  arg0 is the chain index
           //  s is the effect instance to change

@@ -37,7 +37,6 @@ void Screen::drawVertBar(int y, int x, int h, int w,
     }
     
     
-    
     // we DON'T do decibel conversion.
     v -= mn;
     v /= (mx-mn);
