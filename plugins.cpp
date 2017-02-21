@@ -25,7 +25,6 @@
 
 const LADSPA_Descriptor *getLocal(unsigned long i,unsigned long j);
 
-
 using namespace std;
 
 PluginData::PluginData(string l,const LADSPA_Descriptor *d){
@@ -35,8 +34,14 @@ PluginData::PluginData(string l,const LADSPA_Descriptor *d){
     for(unsigned int i=0;i<desc->PortCount;i++){
         const LADSPA_PortRangeHint *h = desc->PortRangeHints+i;
         int hd = h->HintDescriptor;
-        float lower = h->LowerBound;
-        float upper = h->UpperBound;
+        float lower = -200;
+        float upper = 200;
+        
+        if(h->HintDescriptor & LADSPA_HINT_BOUNDED_ABOVE)
+            upper = h->UpperBound;
+        if(h->HintDescriptor & LADSPA_HINT_BOUNDED_BELOW)
+            lower = h->LowerBound;
+        
         
         if(h->HintDescriptor & LADSPA_HINT_SAMPLE_RATE){
             if(h->HintDescriptor & LADSPA_HINT_BOUNDED_BELOW)
@@ -76,13 +81,14 @@ PluginData::PluginData(string l,const LADSPA_Descriptor *d){
         // user must provide!
         
         if(defaultPortValues.find(i)!=defaultPortValues.end()){
-            cout << "default for " << i << 
-                  " (" << desc->PortNames[i] << ")" <<
-                  " set to " << defaultPortValues[i] << endl;
+            //            cout << "default for " << i << 
+            //                  " (" << desc->PortNames[i] << ")" <<
+            //                  " set to " << defaultPortValues[i] << endl;
         } else {
-            cout << "Port " << i << 
-                  " (" << desc->PortNames[i] << ")" <<
-                  "has no default" << endl;
+            //            cout << "Port " << i << 
+            //                  " (" << desc->PortNames[i] << ")" <<
+            //                  "has no default" << endl;
+            defaultPortValues[i]=0; // it's as good as anything else
         }
     }
 }
@@ -186,15 +192,15 @@ PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128
             
             float *addr = v->getptr();
             
-            cout << "Connecting port " << p->desc->PortNames[i]
-                  << "(" << i << ") with " << addr <<endl;
+//            cout << "Connecting port " << p->desc->PortNames[i]
+//                  << "(" << i << ") with " << addr <<endl;
             (*p->desc->connect_port)(h,i,addr);
             portsConnected[i]=true;
         }
         else if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
             opbufs[i] = new float[BUFSIZE];
-            cout << "Connecting OUTPUT port " << p->desc->PortNames[i]
-                  << "(" << i << ") with " << opbufs[i] <<endl;
+//            cout << "Connecting OUTPUT port " << p->desc->PortNames[i]
+//                  << "(" << i << ") with " << opbufs[i] <<endl;
             (*p->desc->connect_port)(h,i,opbufs[i]);
         }
     }
@@ -246,8 +252,6 @@ void PluginMgr::deleteInstances(){
 PluginInstance *PluginData::instantiate(string name){
     return new PluginInstance(this,name);
 }
-
-
 
 // data about the plugin in a file.
 struct PluginFileData{
@@ -303,6 +307,7 @@ void PluginMgr::loadFilesIn(const char *dir,bool permitNoDir){
                                 uniqueIDs.emplace(desc->UniqueID,1);
                                 pluginFileData.emplace(name,PluginFileData(fname.c_str(),i));
                                 plugins[name]=(PluginData *)NULL;
+                                pluginNames.push_back(name);
                             } else
                                 cout << "ID CLASH" << endl;
                         }
@@ -331,6 +336,9 @@ done:
 
 
 
+vector<string> PluginMgr::pluginNames;
+
+
 void PluginMgr::close(){
 }
 
@@ -351,7 +359,7 @@ PluginData *PluginMgr::getPlugin(std::string label){
                 if(!desc)
                     throw _("cannot find descriptor %d in file %s",f.index,f.filename.c_str());
                 plugins[label]=new PluginData(label,desc);
-                cout << "Loaded plugin " << label << endl;
+//                cout << "Loaded plugin " << label << endl;
             } else
                 throw _("cannot find getdesc in file %s",f.filename.c_str());
                 

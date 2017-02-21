@@ -35,13 +35,14 @@ public:
     }
     
     // call when a thing has noticed that we're done.
-    // will return data and reset state.
+    // will return data and reset state. May also return int index.
     std::string consume(){
         state = Idle;
-        if(listFiltered.size() && cursor<listFiltered.size())
+        if(listFiltered.size() && cursor<listFiltered.size()){
             return listFiltered[cursor];
-        else
+        } else {
             return "";
+        }
     }
     void display();
     

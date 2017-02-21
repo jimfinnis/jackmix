@@ -156,9 +156,13 @@ public:
 
 class InputManager {
     Stack<class Screen *,8> screenStack;
+    static InputManager *instance;
 public:
     InputManager(){
+        instance = this;
     }
+    
+    static InputManager *getInstance(){return instance;}
     
     void flow();
     void lock();
@@ -194,9 +198,11 @@ public:
                const char *prompt=NULL,  // might be null, in which case there's no prompt
                const char *keys=NULL     // might be null, in which case any key is fine
                ); 
+    
+    // get from a list of strings
     std::string getFromList(std::string p,
                             std::vector<std::string>& l,
-                            bool *aborted); // may return ""
+                            bool *aborted);
 };
 
 

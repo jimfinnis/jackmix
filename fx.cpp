@@ -66,7 +66,7 @@ struct Chain : public ChainInterface {
                     break;
                 case -1:
                     cout << "Port " << ipd.fromeffect << ":" << ipd.fromport;
-                          
+                    
                     buf = getPort(ipd.fromeffect,ipd.fromport);
                     break;
                 default:
@@ -89,14 +89,14 @@ struct Chain : public ChainInterface {
         int fpidx = inst->p->getPortIdx(port);
         return string(inst->p->desc->PortNames[fpidx]);
     }
-        
+    
     
     float *getPort(string effect,string port){
         if(fxmap.find(effect)==fxmap.end())
             throw _("cannot find source effect '%s'",effect.c_str());
         PluginInstance *inst = fxmap[effect];
         int fpidx = inst->p->getPortIdx(port);
-                    
+        
         if(inst->opbufs.find(fpidx)==inst->opbufs.end())
             throw _("bad port as source port: %s:%s",
                     effect.c_str(),
@@ -127,6 +127,20 @@ struct Chain : public ChainInterface {
         return d;
     }
     virtual void save(ostream &out,string name);
+    
+    // add a new effect  - from the processing thread!
+    virtual void addEffect(PluginData *d,string name);
+    
+    virtual void remapInput(std::string instname,
+                            std::string inpname,
+                            int chan, // 0/1 for chain inputs, -1 for another effect
+                            // below used when chan==-1
+                            std::string outinstname,
+                            std::string outname);
+    virtual void remapOutput(int outchan,
+                             std::string instname,
+                             std::string port);
+    
 };
 
 
@@ -146,6 +160,7 @@ void ChainInterface::addNewEmptyChain(string n){
     Channel *c = new Channel(retname,2,g,p,true,n);
     c->resolveReturnChannel();
 }
+
 
 
 // parse an effect within a chain, and add to chain
@@ -177,8 +192,8 @@ void parseEffect(Chain &c){
               string pname = getnextidentorstring();
               ipd.port = p->getPortIdx(pname);
               if(!LADSPA_IS_PORT_INPUT(p->desc->PortDescriptors[ipd.port]))
-                  throw _("%s is not an input port",pname.c_str());
-                
+              throw _("%s is not an input port",pname.c_str());
+              
               if(tok.getnext()!=T_FROM)expected("'from'");
               // this is either LEFT, RIGHT or an effect name, in which
               // case it is followed by ":port". These have to be resolved
@@ -187,15 +202,15 @@ void parseEffect(Chain &c){
               if(outname=="LEFT")ipd.channel = 0;
               else if(outname=="RIGHT")ipd.channel = 1;
               else {
-                ipd.fromeffect = outname;
-                if(tok.getnext()!=T_COLON)expected("':'");
-                ipd.fromport = getnextidentorstring();
-                ipd.channel = -1;
-              }
+              ipd.fromeffect = outname;
+              if(tok.getnext()!=T_COLON)expected("':'");
+              ipd.fromport = getnextidentorstring();
+              ipd.channel = -1;
+          }
               ipdp->push_back(ipd);
           }
-     );
-        
+              );
+    
     
     
     // now read parameter values and connect them to ports.
@@ -205,24 +220,24 @@ void parseEffect(Chain &c){
     // values (default takes the place of the number).
     
     
-        
+    
     if(tok.getnext()!=T_PARAMS)expected("'params'");
     
     parseList([&p,&i]{
-        // get param name (long or short, string or ident)
-        int t = tok.getnext();
-        if(t!=T_STRING && t!=T_IDENT)
-            expected("parameter name");
-        string pname = tok.getstring();
+              // get param name (long or short, string or ident)
+              int t = tok.getnext();
+              if(t!=T_STRING && t!=T_IDENT)
+              expected("parameter name");
+              string pname = tok.getstring();
               
-        // parse the value, using the LADSPA hints for the param
-        Value *v = parseValue(p->getBounds(pname));
-        printf("Param %s: %f\n",pname.c_str(),v->get());
-        // and connect it
-        i->connect(pname,v->getAddr());
-        delete i->paramsMap[pname];
-        i->paramsMap[pname]=v;
-    });
+              // parse the value, using the LADSPA hints for the param
+              Value *v = parseValue(p->getBounds(pname));
+              printf("Param %s: %f\n",pname.c_str(),v->get());
+              // and connect it
+              i->connect(pname,v->getAddr());
+              delete i->paramsMap[pname];
+              i->paramsMap[pname]=v;
+          });
     
     // ensure all ports are connected, and activate
     i->activate();
@@ -282,13 +297,13 @@ void parseStereoChain(){
     // fixup the names - I know the way this is done is damn ugly, but
     // it's because of how the system was written :)
     chain.leftoutport = chain.getRealPortName(
-                                     chain.leftouteffect,
-                                     chain.leftoutport);
+                                              chain.leftouteffect,
+                                              chain.leftoutport);
     chain.rightoutport = chain.getRealPortName(
-                                      chain.rightouteffect,
-                                      chain.rightoutport);
+                                               chain.rightouteffect,
+                                               chain.rightoutport);
 }
-    
+
 ChainInterface *ChainInterface::find(std::string name){
     if(chains.find(name)==chains.end())
         throw _("chain %s does not exist",name.c_str());
@@ -402,3 +417,152 @@ void ChainInterface::saveAll(ostream &out){
     
     out << "}\n";
 }
+
+void Chain::addEffect(PluginData *d,string name){
+    // here we have to add the effect to the chain and also 
+    // revise the input connection structures
+    
+    // instantiate the plugin
+    PluginInstance *inst = d->instantiate(name);
+    
+    // add a new input connection data block
+    vector<InputConnectionData> *ipdp = new vector<InputConnectionData>();
+    inputConnData.push_back(ipdp);
+    
+    // set up the input connection data block:
+    for(unsigned int i=0;i<d->desc->PortCount;i++){
+        // for each input, select the 0 or 1 channel (i.e. left or right inputs
+        // into the chain, depending on whether the port name contains "right".
+        if(LADSPA_IS_PORT_INPUT(d->desc->PortDescriptors[i])
+           && LADSPA_IS_PORT_AUDIO(d->desc->PortDescriptors[i])){
+            InputConnectionData ipd;
+            
+            ipd.channel=0; // normally left.. unless..
+            const char *pn = d->desc->PortNames[i];
+            if(strcasestr(pn,"right") || strcasestr(pn,"input r"))
+                ipd.channel=1;
+            
+            ipd.port = i;
+            ipdp->push_back(ipd);
+            
+            // and make the actual connection (this is the part done by resolveInputs()
+            // when loading a file)
+            
+            float *buf = ipd.channel?inpleft:inpright;
+            (*inst->p->desc->connect_port)(inst->h,ipd.port,buf);
+        }
+    }
+    
+    // activate the effect
+    inst->activate();
+    // add the effect to the chain
+    fxlist.push_back(inst);
+    fxmap[name]=inst;
+}
+
+
+void Chain::remapInput(std::string instname,
+                       std::string inpname,
+                       int chan, // 0/1 for chain inputs, -1 for another effect
+                       // below used when chan==-1
+                       std::string outinstname,
+                       std::string outname){
+    // here we go. Get the instance.
+    if(fxmap.find(instname)==fxmap.end())
+        return;
+    
+    // we're going to need both the index and the instance
+    PluginInstance *inst = fxmap[instname];
+    int instidx = -1;
+    for(unsigned int i=0;i<fxlist.size();i++){
+        if(fxlist[i]==inst){
+            instidx = i;
+            break;
+        }
+    }
+    if(instidx<0)throw _("could not find instance in list");
+    
+    // now get the input we're remapping
+    int portidx = inst->p->getPortIdx(inpname);
+    
+    // and the IPD for the connection for this input
+    int inputidx=-1;
+    vector<InputConnectionData> *ipdl = inputConnData[instidx];
+    for(unsigned int i=0;i<ipdl->size();i++){
+        InputConnectionData& ipd = (*ipdl)[i];
+        if(ipd.port == portidx){
+            inputidx = i;
+        }
+    }
+    if(inputidx<0)throw _("could not find port");
+    
+    
+    InputConnectionData& ipd = (*ipdl)[inputidx];
+    
+    if(chan>=0){
+        // simple case - remap to chain input
+        // do the remap in the IPD
+        ipd.channel = chan;
+        // and in the actual plugin
+        float *buf = chan?inpleft:inpright;
+        (*inst->p->desc->connect_port)(inst->h,portidx,buf);
+    } else {
+        // otherwise we need to get the effect and port for the output we're
+        // coming from
+        
+        if(fxmap.find(outinstname)==fxmap.end())
+            throw _("cannot find output inst");
+        
+        // and find the output port
+        PluginInstance *outinst = fxmap[outinstname];
+        int outidx = outinst->p->getPortIdx(outname);
+        
+        // and link
+        ipd.channel = -1;
+        ipd.fromeffect = outinstname;
+        ipd.fromport = outname;
+        float *buf=inst->opbufs[outidx];
+        (*inst->p->desc->connect_port)(inst->h,portidx,buf);
+    }
+}
+
+void Chain::remapOutput(int outchan,
+                        std::string instname,
+                        std::string port){
+    // here we go. Get the instance.
+    if(fxmap.find(instname)==fxmap.end())
+        return;
+    // we're going to need both the index and the instance
+    PluginInstance *inst = fxmap[instname];
+    int instidx = -1;
+    for(unsigned int i=0;i<fxlist.size();i++){
+        if(fxlist[i]==inst){
+            instidx = i;
+            break;
+        }
+    }
+    if(instidx<0)throw _("could not find instance in list");
+    
+    // now get the port we'll be using as an output
+    int idx = inst->p->getPortIdx(port);
+    
+    // check it's valid
+    if(!LADSPA_IS_PORT_OUTPUT(inst->p->desc->PortDescriptors[idx])
+       || !LADSPA_IS_PORT_AUDIO(inst->p->desc->PortDescriptors[idx])){
+        throw _("not a valid port");
+    }
+    
+    // and remap
+    
+    if(outchan){
+        rightoutbuf = inst->opbufs[idx];
+        rightouteffect = instname;
+        rightoutport = port;
+    } else {
+        leftoutbuf = inst->opbufs[idx];
+        leftouteffect = instname;
+        leftoutport = port;
+    }
+        
+}
+

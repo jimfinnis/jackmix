@@ -66,6 +66,22 @@ struct ChainInterface {
     
     virtual struct ChainEditData *createEditData()=0;
     
+    // add a new effect on the fly
+    virtual void addEffect(PluginData *d,string name)=0;
+    
+    // remap an input on the fly (that poor fly)
+    virtual void remapInput(std::string instname,
+                            std::string inpname,
+                            int chan, // 0/1 for chain inputs, -1 for another effect
+                            // below used when chan==-1
+                            std::string outinstname,
+                            std::string outname)=0;
+    
+    // remap one of the chain's outputs to an effect output
+    virtual void remapOutput(int outchan,
+                             std::string instname,
+                             std::string port)=0;
+    
 };
 
 extern std::vector<ChainInterface *> chainlist;

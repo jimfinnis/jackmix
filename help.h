@@ -44,9 +44,11 @@ static const char *MainHelpCol1[] = {
 static const char *MainHelpCol2[] = {
 //   0123456789012345678901234567890
     "[        Chain mode]",
-    "{ENTER}    - return to main mode",
+    "{ENTER/q}  - return to main mode",
     "{TAB}      - list->chain->effect",
     "{a}        - add chain",
+    "{e}        - add effect",
+    "{i}        - remap effect input",
     "[     Chain mode: list]",
     "{UP/DOWN}  - select chain",
     "[     Chain mode: chain]",

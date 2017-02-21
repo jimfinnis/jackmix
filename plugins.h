@@ -99,6 +99,9 @@ PluginData *getPlugin(std::string label);
 void deleteInstances();
 /// close anything left over
 void close();
+/// list of all plugins loaded
+extern std::vector<std::string> pluginNames;
+
 }
 
 #endif /* __PLUGINS_H */

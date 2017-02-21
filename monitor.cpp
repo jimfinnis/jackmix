@@ -24,7 +24,7 @@ class Screen *curscreen=NULL; // the current screen. LOCK IT.
 
 static InputRequest req;
 MonitorThread *MonitorThread::instance =NULL;
-
+InputManager *InputManager::instance = NULL;
 /// primary mutex
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; 
 /// condition used to block the main thread while we get input
@@ -189,10 +189,12 @@ void MonitorThread::loop(){
         
         // fetch any data and display it using the current screen
         static MonitorData mdat;
+        static unsigned int monpackct=0;
         if(Process::pollMonRing(&mdat)){
             // we only erase sometimes, because it's only sometimes that data appears here
             erase();
             sc->display(&mdat);
+            monpackct++;
         }
         
         // copy into a buffer for IM to look at (it should lock too)
@@ -202,7 +204,7 @@ void MonitorThread::loop(){
         
         // DEBUGGING - shows a running counter so we can check we're not stalled
         static unsigned int ct=0;
-        mvprintw(h-1,w-8,"%08u",ct++);
+        mvprintw(h-1,w-17,"%08u %08u",ct++,monpackct);
         
         // do the display, first the screen
         

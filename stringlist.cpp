@@ -12,7 +12,7 @@
 
 using namespace std;
 
-static const int WIDTH=20; // not including LHS bar.
+static const int WIDTH=25; // not including LHS bar.
 
 void StringList::display(){
     // this overwrites the right hand part of the display.
@@ -43,7 +43,7 @@ void StringList::display(){
         if(i < listFiltered.size()){
             attrset(i==cursor ? COLOR_PAIR(PAIR_HILIGHT)|A_BOLD:
                     COLOR_PAIR(0));
-            addstr(listFiltered[i].c_str());
+            addstr(listFiltered[i].substr(0,WIDTH-1).c_str());
         }
         clrtoeol();
     }
@@ -52,6 +52,7 @@ void StringList::display(){
     mvaddstr(h+1,0,prompt.c_str()); // overwrites status line
     if(prefix.size())
         mvaddstr(h,x,prefix.c_str());
+    attrset(COLOR_PAIR(0));
               
 }
 

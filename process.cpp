@@ -14,6 +14,7 @@
 
 #include "channel.h"
 #include "ctrl.h"
+#include "fx.h"
 
 #include "exception.h"
 #include "tokeniser.h"
@@ -161,6 +162,18 @@ void Process::processCommand(ProcessCommand& c){
         c.chan->chains[c.arg0].postfade=
               !c.chan->chains[c.arg0].postfade;
         break;
+    case AddEffect:{
+        ChainInterface *ch = chainlist[c.arg0];
+        ch->addEffect(c.pld,c.s);
+    } break;
+    case RemapInput:{
+        ChainInterface *ch = chainlist[c.arg0];
+        ch->remapInput(c.s,c.s2,c.arg1,c.s3,c.s4);
+    } break;
+    case RemapOutput:{
+        ChainInterface *ch = chainlist[c.arg0];
+        ch->remapOutput(c.arg1,c.s,c.s2);
+    } break;
     }
 }
 
