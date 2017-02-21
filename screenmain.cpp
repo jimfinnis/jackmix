@@ -114,20 +114,22 @@ void MainScreen::displayChan(int i,ChanMonData* c,bool cur){
 }    
 
 void MainScreen::commandGainNudge(float v){
+    ProcessCommand cmd(ProcessCommandType::NudgeValue);
     if(curchanptr){
         if(curchanptr->gain->db)v*=0.1f;
-        Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeGain,curchanptr,v));
+        cmd.setvalptr(curchanptr->gain);
     } else {
         v*=0.1f; // master gain is always log
-        Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeMasterGain,NULL,v));
+        cmd.setvalptr(Process::masterGain);
     }
+    cmd.setfloat(v);
+    Process::writeCmd(cmd);
 }    
 
 void MainScreen::commandPanNudge(float v){
-    if(curchanptr)
-        Process::writeCmd(ProcessCommand(ProcessCommandType::ChangePan,curchanptr,v));
-    else 
-        Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeMasterPan,NULL,v));
+    ProcessCommand cmd(ProcessCommandType::NudgeValue);
+    cmd.setvalptr(curchanptr ? curchanptr->pan : Process::masterPan)->setfloat(v);
+    Process::writeCmd(cmd);
 }
 
 void MainScreen::flow(InputManager *im){

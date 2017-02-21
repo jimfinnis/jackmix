@@ -166,15 +166,21 @@ void ChanScreen::commandSendGainNudge(struct Channel *c,int send,float v){
     // send must be valid
     ChainFeed& f = c->chains[send];
     if(f.gain->db)v*=0.1f;
-    Process::writeCmd(ProcessCommand(ChangeSendGain,v,c,send));
+    ProcessCommand cmd(ProcessCommandType::NudgeValue);
+    cmd.setvalptr(f.gain)->setfloat(v);
+    Process::writeCmd(cmd);
                                      
 }
 
 void ChanScreen::commandGainNudge(struct Channel *c,float v){
     if(c->gain->db)v*=0.1f;
-    Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeGain,c,v));
+    ProcessCommand cmd(ProcessCommandType::NudgeValue);
+    cmd.setvalptr(c->gain)->setfloat(v);
+    Process::writeCmd(cmd);
 }    
 
 void ChanScreen::commandPanNudge(struct Channel *c,float v){
-    Process::writeCmd(ProcessCommand(ProcessCommandType::ChangePan,c,v));
+    ProcessCommand cmd(ProcessCommandType::NudgeValue);
+    cmd.setvalptr(c->pan)->setfloat(v);
+    Process::writeCmd(cmd);
 }

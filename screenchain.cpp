@@ -199,8 +199,9 @@ static void commandParamNudge(float v){
         PluginInstance *fx = chainData->fx[cureffect];
         if(cureffectparam>=0 && cureffectparam<(int)fx->paramsList.size()){
             Value *p = fx->paramsMap[fx->paramsList[cureffectparam]];
-            Process::writeCmd(ProcessCommand(ProcessCommandType::ChangeEffectParam,
-                                             v,p));
+            ProcessCommand cmd(ProcessCommandType::NudgeValue);
+            cmd.setvalptr(p)->setfloat(v);
+            Process::writeCmd(cmd);
         }
     }
 }

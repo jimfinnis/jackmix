@@ -13,15 +13,10 @@
 // in the comment
 
 enum ProcessCommandType {
-    ChangeGain,                 // chan,v
-          ChangePan,            // chan,v
-          ChangeMasterGain,     // v
-          ChangeMasterPan,      // v
-          ChangeSendGain,       // chan,arg0(send index),v
+          NudgeValue,           // v
           ChannelMute,          // chan
           ChannelSolo,          // chan
           DelChan,              // chan
-          ChangeEffectParam,    // vp, v
           DelSend,              // chan,arg0(send index)
           TogglePrePost,        // chan,arg0(send index)
           AddSend,              // chan,s(name)
@@ -80,6 +75,16 @@ struct ProcessCommand {
         strcpy(s,str.c_str());
         cmd = c;	arg0 = i;
         setstr(str);
+    }
+    
+    ProcessCommand *setfloat(float f){
+        v = f;
+        return this;
+    }
+    
+    ProcessCommand *setvalptr(Value *v){
+        vp = v;
+        return this;
     }
     
     ProcessCommand *setarg0(int i){

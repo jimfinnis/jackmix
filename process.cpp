@@ -112,29 +112,14 @@ void Process::writeCmd(ProcessCommand cmd){
 
 void Process::processCommand(ProcessCommand& c){
     switch(c.cmd){
-    case ChangeGain:
-        c.chan->gain->nudge(c.v);
-        break;
-    case ChangePan:
-        c.chan->pan->nudge(c.v);
-        break;
-    case ChangeMasterGain:
-        masterGain->nudge(c.v);
-        break;
-    case ChangeMasterPan:
-        masterPan->nudge(c.v);
-        break;
-    case ChangeSendGain:
-        c.chan->chains[c.arg0].gain->nudge(c.v);
+    case NudgeValue:
+        c.vp->nudge(c.v);
         break;
     case ChannelMute:
         c.chan->toggleMute();
         break;
     case ChannelSolo:
         c.chan->toggleSolo();
-        break;
-    case ChangeEffectParam:
-        c.vp->nudge(c.v);
         break;
     case DelSend:
         // awkward. 
