@@ -1,12 +1,18 @@
 * = done, - = not done
 
-- add/remove chain
+- remove decibelisation: no scale should be log, decibelisation
+  should only be done at the DSP stage. That's what it's *for*.
+  While doing this, permit overunity gain.
+
+* add chain
     * creates a null chain, ensure that works
     * automatically creates a return channel
+- remove chain
     - removal must remove all sends for this chain from channels
     - remove the return channel
 
-- add/remove effect from chain
+* add effect to chain
+- remove effect from chain
 - add control to value
     - ideally it would be possible to either select an existing
       control, or add a control and select that. I suspect the flow
