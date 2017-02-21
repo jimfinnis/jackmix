@@ -116,10 +116,16 @@ bool PluginData::getDefault(string pname,float *f){
     return true;
 }
 
+void PluginInstance::dump(){
+    for(unsigned int i=0;i<p->desc->PortCount;i++){
+        float *paddr = connections[i];
+        printf("%d %p\n",i,paddr);
+    }
+}
+
 Bounds PluginData::getBounds(string pname) {
     Bounds b;
     b.flags = 0;
-    
     int idx = getPortIdx(pname);
     const LADSPA_PortRangeHint *h = desc->PortRangeHints+idx;
     if(h->HintDescriptor & LADSPA_HINT_BOUNDED_BELOW){
@@ -180,8 +186,8 @@ PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128
             Value *v = new Value();
             // if no upper or lower bound set, what to do???
             // Just set to the default val for now.
-            v->mx = (b.flags & Bounds::Upper)?b.upper:initval;
-            v->mn = (b.flags & Bounds::Lower)?b.lower:initval;
+            v->mx = (b.flags & Bounds::Upper)?b.upper:initval+1000;
+            v->mn = (b.flags & Bounds::Lower)?b.lower:initval-1000;
             v->setdef(initval);
             v->reset();
             
@@ -195,6 +201,7 @@ PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128
 //            cout << "Connecting port " << p->desc->PortNames[i]
 //                  << "(" << i << ") with " << addr <<endl;
             (*p->desc->connect_port)(h,i,addr);
+            connections[i]=addr;
             portsConnected[i]=true;
         }
         else if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
@@ -202,6 +209,7 @@ PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128
 //            cout << "Connecting OUTPUT port " << p->desc->PortNames[i]
 //                  << "(" << i << ") with " << opbufs[i] <<endl;
             (*p->desc->connect_port)(h,i,opbufs[i]);
+            connections[i]=opbufs[i];
         }
     }
     isActive=false;
@@ -231,6 +239,7 @@ void PluginInstance::connect(string name,float *v){
     int idx = p->getPortIdx(name);
     cout << "Connecting port " << name << " with address " << v << endl;
     (*p->desc->connect_port)(h,idx,v);
+    connections[idx]=v;
     portsConnected[idx]=true;
 }
 

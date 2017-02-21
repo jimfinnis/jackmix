@@ -39,6 +39,7 @@ public:
     
     // maps output ports to their own buffer. Created in ctor.
     unordered_map<int,float*> opbufs;
+    unordered_map<int,float*> connections; // for debugging snark
     
     // will instantiate, set default controls etc.
     PluginInstance(struct PluginData *plugin,string name);
@@ -50,6 +51,9 @@ public:
     
     // connect a port
     void connect(string name,float *v);
+    
+    // dump all ports to stdout
+    void dump();
 };
 
 // one per plugin

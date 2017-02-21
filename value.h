@@ -23,11 +23,10 @@
 class Value {
     friend class Ctrl;
     
-    
-    /// the post-conversion default value
-    float deflt;
     /// the current value, set from the LPF
     float value;
+    /// the post-conversion default value
+    float deflt;
     /// the target value, input to the LPF
     float target;
     /// the smoothing value for updates - the closer to 1, the more slowly
@@ -49,6 +48,8 @@ public:
         ctrl=NULL;
         values.push_back(this);
     }
+    
+    ~Value();
     
     float *getptr(){
         return &value;

@@ -5,12 +5,16 @@
  */
 
 #include <sstream>
+#include <algorithm>
 #include "value.h"
 #include "ctrl.h"
 using namespace std;
 
 vector<Value *> Value::values;
 
+Value::~Value(){
+    values.erase(std::remove(values.begin(),values.end(),this),values.end());
+}
 
 void Value::updateAll(){
     vector<Value *>::iterator it;

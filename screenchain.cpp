@@ -161,12 +161,12 @@ void ChainScreen::onEntry(){
 void ChainScreen::addEffect(InputManager *im){
     bool ab;
     string ename = im->getFromList("Select effect (or CTRL-G to abort)",PluginMgr::pluginNames,&ab);
-    if(ab)return;
+    if(ab||ename=="")return;
     
     try {
         PluginData *p = PluginMgr::getPlugin(ename);
         string iname = im->getString("Name",&ab);
-        if(ab)return;
+        if(ab || iname=="")return;
         
         for(unsigned int i=0;i<chainData->fx.size();i++){
             if(chainData->fx[i]->name == iname){
@@ -344,7 +344,7 @@ void ChainScreen::flow(InputManager *im){
         break;
     case 'a':
         name = im->getString("Chain name",&ab);
-        if(!ab){
+        if(!ab && name!=""){
             if(ChainInterface::findornull(name)){
                 im->setStatus("chain already exists",4);
             } else {

@@ -77,6 +77,7 @@ struct Chain : public ChainInterface {
                 cout << " has address " << buf;
                 cout << ", connecting to " << ipd.port << endl;
                 (*p->p->desc->connect_port)(p->h,ipd.port,buf);
+                p->connections[ipd.port]=buf;
             }
         }
     }
@@ -108,6 +109,8 @@ struct Chain : public ChainInterface {
         vector<PluginInstance *>::iterator it;
         for(it = fxlist.begin();it!=fxlist.end();it++){
             PluginInstance *p = *it;
+//            printf("Running %s\n",p->name.c_str());
+//            p->dump();
             (*p->p->desc->run)(p->h,nframes);
         }
     }
@@ -450,6 +453,7 @@ void Chain::addEffect(PluginData *d,string name){
             
             float *buf = ipd.channel?inpleft:inpright;
             (*inst->p->desc->connect_port)(inst->h,ipd.port,buf);
+            inst->connections[ipd.port]=buf;
         }
     }
     
@@ -506,6 +510,7 @@ void Chain::remapInput(std::string instname,
         // and in the actual plugin
         float *buf = chan?inpleft:inpright;
         (*inst->p->desc->connect_port)(inst->h,portidx,buf);
+        inst->connections[portidx]=buf;
     } else {
         // otherwise we need to get the effect and port for the output we're
         // coming from
@@ -523,6 +528,7 @@ void Chain::remapInput(std::string instname,
         ipd.fromport = outname;
         float *buf=inst->opbufs[outidx];
         (*inst->p->desc->connect_port)(inst->h,portidx,buf);
+        inst->connections[portidx]=buf;
     }
 }
 
@@ -563,6 +569,7 @@ void Chain::remapOutput(int outchan,
         leftouteffect = instname;
         leftoutport = port;
     }
+    Channel::resolveAllChannelChains(); // make sure the return channels are right
         
 }
 
