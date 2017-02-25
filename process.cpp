@@ -161,7 +161,12 @@ void Process::processCommand(ProcessCommand& c){
     case RemapOutput:{
         ChainInterface *ch = chainlist[c.arg0];
         ch->remapOutput(c.arg1,c.s,c.s2);
-    } break;
+        break;
+    }
+    case DeleteChain:{
+        ChainInterface::deleteChain(c.arg0);
+        break;
+    }
     }
 }
 

@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 #include <ostream>
+#include <algorithm>
 #include "value.h"
 #include "ringbuffer.h"
 
@@ -91,6 +92,12 @@ public:
         values.push_back(v);
     }
     
+    /// remove a value from association
+    void remval(Value *v){
+        // remove all values v from the values list
+        values.erase(std::remove(values.begin(),values.end(),v),values.end());
+    }
+    
     /// set a value; will convert the input then pass it down to the
     /// individual values, VIA THE RING BUFFER. It should be called
     /// from the source handler thread, and from one thread only
@@ -109,6 +116,9 @@ public:
     /// all the ctrl ring buffers, reading data. If there is
     /// any, it will be passed down to the values.
     static void pollAllCtrlRings();
+    
+    /// remove this value from all controls (it has been deleted)
+    static void removeAllAssociations(Value *v);
     
     
     static void saveAll(std::ostream &out);

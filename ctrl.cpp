@@ -46,6 +46,14 @@ void Ctrl::checkAllCtrlsForSource(){
     }
 }
 
+void Ctrl::removeAllAssociations(Value *v){
+    unordered_map<string,Ctrl *>::iterator it;
+    for(it=map.begin();it!=map.end();it++){
+        Ctrl *c = it->second;
+        c->remval(v);
+    }
+}
+
 void Ctrl::pollAllCtrlRings(){
     unordered_map<string,Ctrl *>::iterator it;
     for(it=map.begin();it!=map.end();it++){

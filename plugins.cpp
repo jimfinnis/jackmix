@@ -21,6 +21,7 @@
 #include "exception.h"
 #include "bounds.h"
 #include "process.h"
+#include "ctrl.h"
 #include "plugins.h"
 
 const LADSPA_Descriptor *getLocal(unsigned long i,unsigned long j);
@@ -217,14 +218,22 @@ PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128
 }
 
 PluginInstance::~PluginInstance(){
+    // deactivate and clean up the effect
     if(isActive && p->desc->deactivate)
         (*p->desc->deactivate)(h);
     if(p->desc->cleanup)
         (*p->desc->cleanup)(h);
+    // delete output buffers
     for(unsigned int i=0;i<p->desc->PortCount;i++){
         if(LADSPA_IS_PORT_OUTPUT(p->desc->PortDescriptors[i])){
             delete opbufs[i];
         }
+    }
+    // delete values (should also delete control associations)
+    for(unsigned int i=0;i<paramsList.size();i++){
+        Value *v = paramsMap[paramsList[i]];
+        Ctrl::removeAllAssociations(v);
+        delete v;
     }
 }
 

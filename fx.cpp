@@ -35,6 +35,16 @@ struct Chain : public ChainInterface {
         leftoutport="zero";
         rightoutport="zero";
     }
+    
+    virtual ~Chain(){
+        for(unsigned int i=0;i<fxlist.size();i++){
+            PluginInstance *p = fxlist[i];
+            delete p;
+            vector<InputConnectionData> *ipdl = inputConnData[i];
+            delete ipdl;
+        }
+    }
+    
     // vector so we can run in order
     vector<PluginInstance *> fxlist;
     // map so we can find
@@ -175,6 +185,19 @@ void ChainInterface::addNewEmptyChain(string n){
     c->resolveReturnChannel();
 }
 
+void ChainInterface::deleteChain(int n){
+    // assume chaininterfaces are all Chain
+    Chain *chain = (Chain *)chainlist[n];
+    
+    // we need to remove any return channel and sends
+    Channel::removeReturnChannelsAndSends(chain->name);
+    
+    // remove from the map
+    chains.erase(chain->name);
+    // this should delete/deactivate all the effects
+    // by running the dtor
+    chainlist.erase(chainlist.begin()+n);
+}
 
 
 // parse an effect within a chain, and add to chain

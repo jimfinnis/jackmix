@@ -33,14 +33,16 @@ enum ChainListMode{Chain,Effects,Params};
 static ChainListMode chainListMode=Chain;
 
 static void regenChainData(int idx){
+    MonitorThread::get()->lock();
     if(chainData)
         delete chainData;
-    if(idx<(int)chainlist.size())
+    if(idx<(int)chainlist.size() && idx>=0)
         chainData = chainlist[idx]->createEditData();
     else
         chainData = NULL;
     cureffect=0;
     cureffectparam=0;
+    MonitorThread::get()->unlock();
 }
 
 void ChainScreen::display(MonitorData *d){
@@ -152,7 +154,12 @@ void ChainScreen::display(MonitorData *d){
                 y+=2;
             }
         }
+    } else {
+        attrset(COLOR_PAIR(PAIR_RED));
+        mvaddstr(1,25,"No chain data");
+        attrset(COLOR_PAIR(0));
     }
+        
     MonitorThread::get()->unlock();
     attrset(COLOR_PAIR(0));
 }
@@ -186,7 +193,7 @@ void ChainScreen::addEffect(InputManager *im){
         // have to wait for the chain to be added to regen data?
         //        im->getKey("Press key to regen");
         im->setStatus("REGENERATING",1);
-        usleep(1000);
+        usleep(10000);
         forceRegen=true;
     }
     catch(string s){
@@ -303,7 +310,7 @@ void ChainScreen::remapInput(InputManager *im){
     // and send
     Process::writeCmd(cmd);
     im->setStatus("REGENERATING",1);
-    usleep(1000);
+    usleep(10000);
     forceRegen=true;
 }
 
@@ -343,7 +350,7 @@ void ChainScreen::remapOutput(InputManager *im){
     
     Process::writeCmd(cmd);
     im->setStatus("REGENERATING",1);
-    usleep(1000);
+    usleep(10000);
     forceRegen=true;
 }
 
@@ -377,13 +384,28 @@ void ChainScreen::flow(InputManager *im){
         remapOutput(im);
         break;
     case 'e':
-        addEffect(im);
+        if(curchain>=0 && chainData)
+            addEffect(im);
         break;
     case 9: // tab
         switch(chainListMode){
         case Chain:chainListMode=Effects;break;
         case Effects:chainListMode=Params;break;
         case Params:chainListMode=Chain;break;
+        }
+        break;
+    case KEY_DC:
+        if(chainListMode==Chain){
+            if(im->getKey("Delete chain - are you sure?","yn")=='y'){
+                ProcessCommand cmd(ProcessCommandType::DeleteChain);
+                cmd.setarg0(curchain);
+                Process::writeCmd(cmd);
+                im->setStatus("REGENERATING",1);
+                usleep(10000);
+                forceRegen=true;
+                if(curchain>=(int)chainlist.size())
+                    curchain=((int)chainlist.size())-1;
+            }
         }
         break;
     case 'h':

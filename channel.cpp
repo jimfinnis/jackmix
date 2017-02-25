@@ -11,8 +11,23 @@
 #include "monitor.h"
 #include "save.h"
 #include "process.h"
+#include "ctrl.h"
 
 Channel *Channel::solochan=NULL;
+
+Channel::~Channel(){
+    // remove the channel's values from the controlled values
+    Ctrl::removeAllAssociations(gain);
+    Ctrl::removeAllAssociations(pan);
+    
+    // remove the channel from the appropriate list
+    std::vector<Channel *> &vec = leftport ? inputchans : returnchans;
+    // and apparently C++ is a *good* language?
+    vec.erase(std::remove(vec.begin(),vec.end(),this),vec.end());
+}
+    
+    
+
 
 // two sets of channels - input channels (which have a jack port)
 // and return channels (which mix in the output of ladspa effects)
@@ -123,6 +138,29 @@ void Channel::mix(float *__restrict leftout,
                 it->chain->addStereo(left+offset,right+offset,gain);
         }
     }
+}
+
+void Channel::removeReturnChannelsAndSends(std::string chainname){
+    // remove sends
+    for(unsigned int i=0;i<inputchans.size();i++){
+        inputchans[i]->removeChainInfo(chainname);
+    }
+    for(unsigned int i=0;i<returnchans.size();i++){
+        // unlikely, this, because we don't often have a return with
+        // a send. But we might.
+        returnchans[i]->removeChainInfo(chainname);
+    }
+    // finally, remove the return channels
+    vector<Channel *>::iterator it = returnchans.begin();
+    while(it!=returnchans.end()){
+        Channel *c = *it;
+        if(c->isReturn() && c->getReturnName()==chainname){
+            it = returnchans.erase(it);
+        } else {
+            it++;
+        }
+    }
+    
 }
 
 

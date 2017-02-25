@@ -177,12 +177,7 @@ public:
             inputchans.push_back(this);
     }
     
-    virtual ~Channel(){
-        std::vector<Channel *> &vec = leftport ? inputchans : returnchans;
-        // and apparently C++ is a *good* language?
-        vec.erase(std::remove(vec.begin(),vec.end(),this),vec.end());
-    }
-    
+    virtual ~Channel();
     
     
     // add a chain send - if from the parser, leave chain NULL to be resolved.
@@ -199,6 +194,29 @@ public:
             chains.erase(chains.begin()+i);
         }
     }
+    
+    // remove chain info for a named chain, called if the chain is destroyed
+    void removeChainInfo(std::string n){
+        std::vector<std::string>::iterator nit = chainNames.begin();
+        std::vector<ChainFeed>::iterator cit = chains.begin();
+        
+        while(nit!=chainNames.end()){
+            if(*nit == n)
+                nit = chainNames.erase(nit);
+            else
+                nit++;
+        }
+        while(cit!=chains.end()){
+            if((*cit).chain->name == n)
+                cit = chains.erase(cit);
+            else
+                cit++;
+        }
+    }
+    
+    // a chain is being removed, so remove its return channel
+    // and any sends to it.
+    static void removeReturnChannelsAndSends(std::string chainname);
     
     static void resolveAllChannelChains(){
         std::vector<Channel *>::iterator it;

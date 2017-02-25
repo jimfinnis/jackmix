@@ -37,6 +37,7 @@ enum ProcessCommandType {
           // s is instance to use output of
           // s2 is the instance's output which will be the chain's output
           RemapOutput,
+          DeleteChain,          // arg0(chain index)
           AddChannel            // s(name),arg0(1/2 [mono/stereo])
 };
 

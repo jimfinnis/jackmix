@@ -28,6 +28,9 @@ struct ChainInterface {
         memset(inpright,0,BUFSIZE*sizeof(float));
     }
     
+    virtual ~ChainInterface(){}
+    
+    
     // mono chains are currently implemented by adding to both the
     // left and right input 
     void addMono(float *v,float gain){
@@ -59,6 +62,8 @@ struct ChainInterface {
     void save(std::ostream &out,std::string name);
     static void saveAll(std::ostream &out);
     static void addNewEmptyChain(std::string n);
+    // delete chain by idx in chainlist
+    static void deleteChain(int n);
     
     // generate a structure containing the connection and parameter data
     // for all fx in the chain, for editing. Messy, slightly, but it means
