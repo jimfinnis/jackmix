@@ -111,8 +111,9 @@ void ChanScreen::flow(InputManager *im){
                 string sel = im->getFromList("Select chain to send to (or CTRL-G to abort)",
                                              names,&aborted);
                 if(!aborted){
-                    Process::writeCmd(ProcessCommand(ProcessCommandType::AddSend,
-                                                     chan,sel));
+                    ProcessCommand cmd(ProcessCommandType::AddSend);
+                    cmd.setchan(chan)->setstr(sel);
+                    Process::writeCmd(cmd);
                 }
             }
         }
@@ -120,24 +121,31 @@ void ChanScreen::flow(InputManager *im){
     case KEY_DC: // delete send
         if(cursend>=0 && chan){
             if(im->getKey("Delete send - are you sure?","yn")=='y'){
-            Process::writeCmd(ProcessCommand(
-                                             ProcessCommandType::DelSend,
-                                             0,chan,cursend));
-                
+                ProcessCommand cmd(ProcessCommandType::DelSend);
+                cmd.setarg0(cursend)->setchan(chan);
+                Process::writeCmd(cmd);
             }
         }
     case 't':
         if(chan && cursend>=0){
-            Process::writeCmd(ProcessCommand(
-                                             ProcessCommandType::TogglePrePost,
-                                             0,chan,cursend));
+            ProcessCommand cmd(ProcessCommandType::TogglePrePost);
+            cmd.setarg0(cursend)->setchan(chan);
+            Process::writeCmd(cmd);
         }
         break;
     case 'm':
-        Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelMute,chan));
+        if(chan){
+            ProcessCommand cmd(ProcessCommandType::ChannelMute);
+            cmd.setchan(chan);
+            Process::writeCmd(cmd);
+        }
         break;
     case 's':
-        Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelSolo,chan));
+        if(chan){
+            ProcessCommand cmd(ProcessCommandType::ChannelSolo);
+            cmd.setchan(chan);
+            Process::writeCmd(cmd);
+        }
         break;
     case KEY_UP:
         if(--curparam < 0)curparam=0;

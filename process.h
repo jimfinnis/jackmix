@@ -44,12 +44,15 @@ struct Process {
     static bool pollMonRing(MonitorData *p);
     
     /// add a command to be communicated to the process thread.
-    /// Deprecated.
-    static void writeCmd(ProcessCommandType cmd,
-                         float v,class Channel *c,int i);
-    
-    /// add a command to be communicated to the process thread.
+    /// Actually queues commands to be sent with sendCmds(),
+    /// which is done in the display thread.
     static void writeCmd(ProcessCommand cmd);
+    
+    /// called from the display thread - copies commands into the process queue
+    /// and blocks that thread until processing is done.
+    static void sendCmds();
+    
+    
     
     
     // handle a command coming in on the command ring buffer
@@ -69,7 +72,6 @@ struct Process {
     // the main process - static so it's just a function and can
     // be used as a callback
     static int callbackProcess(jack_nframes_t nframes, void *arg);
-    
 };
 
 #endif /* __PROCESS_H */

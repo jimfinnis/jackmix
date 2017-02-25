@@ -34,10 +34,16 @@ static jack_port_t *output[2];
 volatile bool Process::parsedAndReady=false;
 RingBuffer<MonitorData> Process::monring(20);
 RingBuffer<ProcessCommand> Process::moncmdring(20);
+RingBuffer<ProcessCommand> sendqueue(20);
+
 uint32_t Process::samprate=0;
 PeakMonitor Process::masterMonL("masterL"),Process::masterMonR("masterR");
 Value *Process::masterPan,*Process::masterGain;
 jack_client_t *Process::client=NULL;
+
+// used to lock the UI while the process does its stuff
+static pthread_mutex_t cmdmutex = PTHREAD_MUTEX_INITIALIZER; 
+static pthread_cond_t cmdcond = PTHREAD_COND_INITIALIZER;
 
 void Process::init(){
     masterGain = (new Value())->
@@ -60,6 +66,7 @@ void Process::initJack(){
     jack_set_process_callback(client, callbackProcess, 0);
     jack_set_sample_rate_callback(client, callbackSrate, 0);
     jack_on_shutdown(client, callbackShutdown, 0);
+    
     
     output[0] = jack_port_register(
                                    client, 
@@ -93,17 +100,24 @@ bool Process::pollMonRing(MonitorData *p){
     return rd;
 }
 
-void Process::writeCmd(ProcessCommandType cmd,
-                       float v,class Channel *c,int i){
-    writeCmd(ProcessCommand(cmd,v,c,i));
-}    
 
 void Process::writeCmd(ProcessCommand cmd){
-    if(moncmdring.canWrite()){
-        moncmdring.write(cmd);
-    }
+    // queue a command
+    if(sendqueue.canWrite())
+        sendqueue.write(cmd);
 }
 
+void Process::sendCmds(){
+    while(sendqueue.getReadSpace()){
+        ProcessCommand cmd;
+        sendqueue.read(cmd);
+        if(moncmdring.canWrite()){
+            moncmdring.write(cmd);
+        }
+    }
+    // block until commands done
+    pthread_cond_wait(&cmdcond,&cmdmutex);
+}
 
 
 /*
@@ -163,10 +177,12 @@ void Process::processCommand(ProcessCommand& c){
         ch->remapOutput(c.arg1,c.s,c.s2);
         break;
     }
-    case DeleteChain:{
+    case AddChain:
+        ChainInterface::addNewEmptyChain(c.s);
+        break;
+    case DeleteChain:
         ChainInterface::deleteChain(c.arg0);
         break;
-    }
     }
 }
 
@@ -251,6 +267,7 @@ int Process::callbackProcess(jack_nframes_t nframes, void *arg){
         moncmdring.read(cmd);
         processCommand(cmd);
     }
+    pthread_cond_signal(&cmdcond);
     
     return 0;
 }

@@ -37,6 +37,7 @@ enum ProcessCommandType {
           // s is instance to use output of
           // s2 is the instance's output which will be the chain's output
           RemapOutput,
+          AddChain,             // s(name)
           DeleteChain,          // arg0(chain index)
           AddChannel            // s(name),arg0(1/2 [mono/stereo])
 };
@@ -52,35 +53,14 @@ struct ProcessCommand {
     ProcessCommand(ProcessCommandType c){
         cmd = c;
     }
-    ProcessCommand(ProcessCommandType c,float f, Channel *ch,int a0){
-        cmd = c;        v = f;        chan = ch;        arg0 = a0;
-    }
-    
-    ProcessCommand(ProcessCommandType c,float f,Value *p){
-        cmd = c;        vp = p;        v = f;
-    }
-    ProcessCommand(ProcessCommandType c,Channel *ch,float f){
-        cmd = c;        chan = ch;     v = f;
-    }
-    ProcessCommand(ProcessCommandType c,Channel *ch){
-        cmd = c;        chan = ch;
-    }
-    
-    
-    ProcessCommand(ProcessCommandType c,Channel *ch,std::string str){
-        cmd = c;        chan = ch;
-        setstr(str);
-    }
-    
-    ProcessCommand(ProcessCommandType c,std::string str,int i){
-        if(str.size()>STRSIZE) throw _("string too large");
-        strcpy(s,str.c_str());
-        cmd = c;	arg0 = i;
-        setstr(str);
-    }
     
     ProcessCommand *setfloat(float f){
         v = f;
+        return this;
+    }
+    
+    ProcessCommand *setchan(Channel *c){
+        chan = c;
         return this;
     }
     

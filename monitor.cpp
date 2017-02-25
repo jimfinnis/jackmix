@@ -123,6 +123,10 @@ void MonitorThread::threadfunc(){
 void MonitorThread::loop(){
     // main loop
     while(1){
+        // send commands from the UI thread to the process thread
+        Process::sendCmds();
+        
+        
         Screen *sc;
         getmaxyx(stdscr,h,w);
         

@@ -371,9 +371,12 @@ void ChainScreen::flow(InputManager *im){
             if(ChainInterface::findornull(name)){
                 im->setStatus("chain already exists",4);
             } else {
-                im->lock();
-                ChainInterface::addNewEmptyChain(name);
-                im->unlock();
+                ProcessCommand cmd(ProcessCommandType::AddChain);
+                cmd.setstr(name);
+                Process::writeCmd(cmd);
+                im->setStatus("REGENERATING",1);
+                usleep(10000);
+                forceRegen=true;
             }
         }
         break;

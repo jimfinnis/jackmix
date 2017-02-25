@@ -175,7 +175,9 @@ void MainScreen::flow(InputManager *im){
             if(Channel::getChannel(name,isret)){
                 im->setStatus("Channel already exists",4);
             } else {
-                Process::writeCmd(ProcessCommand(ProcessCommandType::AddChannel,name,chans));
+                ProcessCommand cmd(ProcessCommandType::AddChannel);
+                cmd.setstr(name)->setarg0(chans);
+                Process::writeCmd(cmd);
             }
         }
         break;
@@ -184,8 +186,11 @@ void MainScreen::flow(InputManager *im){
         if(curchanptr){
             if(curchanptr->isReturn())
                 im->setStatus("Channel is a return channel - delete the chain instead",4);
-            else if(im->getKey("are you sure?","yn")=='y')
-                Process::writeCmd(ProcessCommand(ProcessCommandType::DelChan,curchanptr));
+            else if(im->getKey("are you sure?","yn")=='y'){
+                ProcessCommand cmd(ProcessCommandType::DelChan);
+                cmd.setchan(curchanptr);
+                Process::writeCmd(cmd);
+            }
         } else
             im->setStatus("Cannot remove master channel",4);
         break;
@@ -209,12 +214,18 @@ void MainScreen::flow(InputManager *im){
         im->go(&scrChain);
         break;
     case 'm':case 'M':
-        if(curchanptr)
-            Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelMute,curchanptr));
+        if(curchanptr){
+            ProcessCommand cmd(ProcessCommandType::ChannelMute);
+            cmd.setchan(curchanptr);
+            Process::writeCmd(cmd);
+        }
         break;
     case 's':case 'S':
-        if(curchanptr)
-            Process::writeCmd(ProcessCommand(ProcessCommandType::ChannelSolo,curchanptr));
+        if(curchanptr){
+            ProcessCommand cmd(ProcessCommandType::ChannelSolo);
+            cmd.setchan(curchanptr);
+            Process::writeCmd(cmd);
+        }
         break;
     case 10:
         if(curchan>=0){
