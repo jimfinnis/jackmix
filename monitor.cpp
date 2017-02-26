@@ -26,7 +26,7 @@ static InputRequest req;
 MonitorThread *MonitorThread::instance =NULL;
 InputManager *InputManager::instance = NULL;
 /// primary mutex
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; 
+static pthread_mutex_t mutex;
 /// condition used to block the main thread while we get input
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
@@ -60,8 +60,14 @@ MonitorThread::MonitorThread(){
         throw _("a monitor thread is already running.");
     
     running=true;requestStop=false;
-    // start the thread
     
+    // init the mutex as recursive
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&mutex,&attr);
+    
+    // start the thread
     pthread_create(&thread,NULL,_threadfunc,this);
     instance = this;
 }
@@ -162,8 +168,8 @@ void MonitorThread::loop(){
                 req.intout=k;
                 req.setDone();
                 // signal the other thread
-                pthread_cond_signal(&cond);
                 unlock();
+                pthread_cond_signal(&cond);
                 break;
             case InputReqLineEdit:
                 newst=lineEdit.handleKey(k);
@@ -173,20 +179,21 @@ void MonitorThread::loop(){
                     req.strout = lineEdit.consume();
                     req.setDone();
                     // signal the other thread
-                    pthread_cond_signal(&cond);
                     unlock();
+                    pthread_cond_signal(&cond);
                 }
                 break;
             case InputReqEditVal:
                 newst=lineEdit.handleKey(k);
                 if(newst!=Running){
+                    lock();
                     req.aborted = newst==Aborted;
                     req.strout = lineEdit.consume();
                     req.value->setTarget(atof(req.strout.c_str()));
                     req.setDone();
                     // signal the other thread
-                    pthread_cond_signal(&cond);
                     unlock();
+                    pthread_cond_signal(&cond);
                 }
                 break;
             case InputReqStringList:
@@ -197,8 +204,8 @@ void MonitorThread::loop(){
                     req.strout = stringList.consume();
                     req.setDone();
                     // signal the other thread
-                    pthread_cond_signal(&cond);
                     unlock();
+                    pthread_cond_signal(&cond);
                 }
                 break;
             default:break;

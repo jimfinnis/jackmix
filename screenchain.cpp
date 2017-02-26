@@ -32,8 +32,15 @@ static int curchain=0;
 enum ChainListMode{Chain,Effects,Params};
 static ChainListMode chainListMode=Chain;
 
+
+static void signalRegen(InputManager *im){
+    im->setStatus("REGENERATING",1);
+    usleep(10000);
+    forceRegen=true;
+}
+
+
 static void regenChainData(int idx){
-    MonitorThread::get()->lock();
     if(chainData)
         delete chainData;
     if(idx<(int)chainlist.size() && idx>=0)
@@ -42,14 +49,19 @@ static void regenChainData(int idx){
         chainData = NULL;
     cureffect=0;
     cureffectparam=0;
-    MonitorThread::get()->unlock();
 }
 
 void ChainScreen::display(MonitorData *d){
+    
+    MonitorThread::get()->lock();
+    if(curchain>=(int)chainlist.size())
+        curchain=((int)chainlist.size())-1;
     if(forceRegen){
         regenChainData(curchain);
         forceRegen=false;
     }
+    MonitorThread::get()->unlock();
+    
     int w = MonitorThread::get()->w;
     title("CHAIN LIST");
     int chainHilight = COLOR_PAIR(PAIR_HILIGHT);
@@ -192,9 +204,7 @@ void ChainScreen::addEffect(InputManager *im){
         Process::writeCmd(cmd);
         // have to wait for the chain to be added to regen data?
         //        im->getKey("Press key to regen");
-        im->setStatus("REGENERATING",1);
-        usleep(10000);
-        forceRegen=true;
+        signalRegen(im);
     }
     catch(string s){
         im->setStatus(s.c_str(),5);
@@ -309,9 +319,7 @@ void ChainScreen::remapInput(InputManager *im){
     
     // and send
     Process::writeCmd(cmd);
-    im->setStatus("REGENERATING",1);
-    usleep(10000);
-    forceRegen=true;
+    signalRegen(im);
 }
 
 void ChainScreen::remapOutput(InputManager *im){
@@ -349,9 +357,7 @@ void ChainScreen::remapOutput(InputManager *im){
     cmd.setarg0(curchain)->setstr(fx->name)->setarg1(chan)->setstr2(port);
     
     Process::writeCmd(cmd);
-    im->setStatus("REGENERATING",1);
-    usleep(10000);
-    forceRegen=true;
+    signalRegen(im);
 }
 
 void ChainScreen::flow(InputManager *im){
@@ -359,6 +365,11 @@ void ChainScreen::flow(InputManager *im){
     PluginInstance *fx;
     bool ab;
     string name;
+    
+    im->lock();
+    if(curchain>=(int)chainlist.size())
+        curchain=((int)chainlist.size())-1;
+    im->unlock();
     
     switch(c){
     case 'q':
@@ -374,9 +385,7 @@ void ChainScreen::flow(InputManager *im){
                 ProcessCommand cmd(ProcessCommandType::AddChain);
                 cmd.setstr(name);
                 Process::writeCmd(cmd);
-                im->setStatus("REGENERATING",1);
-                usleep(10000);
-                forceRegen=true;
+                signalRegen(im);
             }
         }
         break;
@@ -404,11 +413,7 @@ void ChainScreen::flow(InputManager *im){
                 ProcessCommand cmd(ProcessCommandType::DeleteChain);
                 cmd.setarg0(curchain);
                 Process::writeCmd(cmd);
-                im->setStatus("REGENERATING",1);
-                usleep(10000);
-                forceRegen=true;
-                if(curchain>=(int)chainlist.size())
-                    curchain=((int)chainlist.size())-1;
+                signalRegen(im);
             }
             break;
         case Effects:
@@ -417,9 +422,7 @@ void ChainScreen::flow(InputManager *im){
                     ProcessCommand cmd(ProcessCommandType::DeleteEffect);
                     cmd.setarg0(curchain)->setarg1(cureffect);
                     Process::writeCmd(cmd);
-                    im->setStatus("REGENERATING",1);
-                    usleep(10000);
-                    forceRegen=true;
+                    signalRegen(im);
                 }
             }
             break;
@@ -435,7 +438,7 @@ void ChainScreen::flow(InputManager *im){
         switch(chainListMode){
         case Chain:curchain--;
             if(curchain<0)curchain=((int)chainlist.size())-1;
-            regenChainData(curchain);
+            signalRegen(im);
             break;
         case Effects:
             cureffect--;
@@ -454,7 +457,7 @@ void ChainScreen::flow(InputManager *im){
         case Chain:curchain++;
             if(curchain>=(int)chainlist.size())
                 curchain=0;
-            regenChainData(curchain);
+            signalRegen(im);
             break;
         case Effects:
             cureffect++;
