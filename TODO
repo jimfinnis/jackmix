@@ -12,7 +12,7 @@
     * remove the return channel
 
 * add effect to chain
-- remove effect from chain
+* remove effect from chain
 - add control to value
     - ideally it would be possible to either select an existing
       control, or add a control and select that. I suspect the flow

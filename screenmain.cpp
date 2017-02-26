@@ -10,6 +10,7 @@
 
 #include "screenmain.h"
 #include "screenchan.h"
+#include "screenctrl.h"
 #include "screenchain.h"
 
 #include <ncurses.h>
@@ -209,9 +210,13 @@ void MainScreen::flow(InputManager *im){
         im->setStatus("Saved.",2);
     }
         break;
-    case 'c':case 'C':
+    case 'c':
         im->push();
         im->go(&scrChain);
+        break;
+    case 'C':
+        im->push();
+        im->go(&scrCtrl);
         break;
     case 'm':case 'M':
         if(curchanptr){

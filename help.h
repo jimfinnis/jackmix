@@ -28,6 +28,8 @@ static const char *MainHelpCol1[] = {
     "{m}        - mute channel",
     "{g}        - set gain",
     "{p}        - set pan",
+    "{c}        - chain editor",
+    "{C}        - controller editor",
     "{ENTER}    - edit channel",
     "{w}        - write config to file",
     "",
