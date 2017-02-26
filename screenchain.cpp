@@ -398,8 +398,9 @@ void ChainScreen::flow(InputManager *im){
         }
         break;
     case KEY_DC:
-        if(chainListMode==Chain){
-            if(im->getKey("Delete chain - are you sure?","yn")=='y'){
+        switch(chainListMode){
+        case Chain:
+            if(chainData && im->getKey("Delete chain - are you sure?","yn")=='y'){
                 ProcessCommand cmd(ProcessCommandType::DeleteChain);
                 cmd.setarg0(curchain);
                 Process::writeCmd(cmd);
@@ -409,6 +410,20 @@ void ChainScreen::flow(InputManager *im){
                 if(curchain>=(int)chainlist.size())
                     curchain=((int)chainlist.size())-1;
             }
+            break;
+        case Effects:
+            if(chainData && cureffect>=0 && cureffect<(int)chainData->fx.size()){
+                if(im->getKey("Delete effect - are you sure?","yn")=='y'){
+                    ProcessCommand cmd(ProcessCommandType::DeleteEffect);
+                    cmd.setarg0(curchain)->setarg1(cureffect);
+                    Process::writeCmd(cmd);
+                    im->setStatus("REGENERATING",1);
+                    usleep(10000);
+                    forceRegen=true;
+                }
+            }
+            break;
+        default:break;
         }
         break;
     case 'h':

@@ -65,6 +65,8 @@ struct ChainInterface {
     // delete chain by idx in chainlist
     static void deleteChain(int n);
     
+    static void deleteEffect(int chainidx,int fidx);
+    
     // generate a structure containing the connection and parameter data
     // for all fx in the chain, for editing. Messy, slightly, but it means
     // the actual fx gubbins stays encapsulated in fx.cpp.

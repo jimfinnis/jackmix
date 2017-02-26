@@ -58,7 +58,7 @@ struct Chain : public ChainInterface {
     vector<vector<InputConnectionData>*> inputConnData;
     
     // resolve connections within the chain
-    void resolveInputs(){
+    void resolveInputs(bool debugout=true){
         if(fxlist.size()!=inputConnData.size())
             throw _("size mismatch in effect lists");
         
@@ -72,19 +72,19 @@ struct Chain : public ChainInterface {
                 float *buf;
                 switch(ipd.channel){
                 case 0:
-                    cout << "Left input";
+                    if(debugout)cout << "Left input";
                     buf = inpleft;
                     break;
                 case 1:
-                    cout << "Right input";
+                    if(debugout)cout << "Right input";
                     buf = inpright;
                     break;
                 case 2:
-                    cout << "Zero";
+                    if(debugout)cout << "Zero";
                     buf = zeroBuf;
                     break;
                 case -1:
-                    cout << "Port " << ipd.fromeffect << ":" << ipd.fromport;
+                    if(debugout)cout << "Port " << ipd.fromeffect << ":" << ipd.fromport;
                     
                     buf = getPort(ipd.fromeffect,ipd.fromport);
                     break;
@@ -93,8 +93,10 @@ struct Chain : public ChainInterface {
                 }
                 
                 // make the connection for the input port
-                cout << " has address " << buf;
-                cout << ", connecting to " << ipd.port << endl;
+                if(debugout){
+                    cout << " has address " << buf;
+                    cout << ", connecting to " << ipd.port << endl;
+                }
                 (*p->p->desc->connect_port)(p->h,ipd.port,buf);
                 p->connections[ipd.port]=buf;
             }
@@ -155,6 +157,8 @@ struct Chain : public ChainInterface {
     // add a new effect  - from the processing thread!
     virtual void addEffect(PluginData *d,string name);
     
+    void deleteEffect(int idx);
+    
     virtual void remapInput(std::string instname,
                             std::string inpname,
                             int chan, // 0/1 for chain inputs, -1 for another effect
@@ -198,6 +202,14 @@ void ChainInterface::deleteChain(int n){
     // by running the dtor
     chainlist.erase(chainlist.begin()+n);
 }
+
+void ChainInterface::deleteEffect(int chainidx,int fidx){
+    // assume chaininterfaces are all Chain
+    Chain *chain = (Chain *)chainlist[chainidx];
+    
+    chain->deleteEffect(fidx);
+}
+
 
 
 // parse an effect within a chain, and add to chain
@@ -615,3 +627,51 @@ void Chain::remapOutput(int outchan,
         
 }
 
+void Chain::deleteEffect(int idx){
+    PluginInstance *inst = fxlist[idx];
+    
+    // first, we need to remove this instance as an input for all instances that
+    // feed into it, replacing them with the zero buffer.
+    
+    for(unsigned int i=0;i<fxlist.size();i++){
+        // remove references from this effect into ipdl
+        vector<InputConnectionData> *ipdl = inputConnData[i];
+        vector<InputConnectionData>::iterator it;
+        for(it=ipdl->begin();it!=ipdl->end();it++){
+            InputConnectionData& d = (*it);
+            if(d.channel == -1 && d.fromeffect == inst->name){
+                d.fromeffect="zero";
+                d.fromport="zero";
+            }
+        }
+    }
+    
+    // remove this effect from the input connection list
+    delete inputConnData[idx];
+    inputConnData.erase(inputConnData.begin()+idx);
+    
+    // then we need to replace the output buffers with zero if they refer to this.
+    
+    if(leftouteffect == inst->name){
+        leftouteffect = "zero";
+        leftoutport = "zero";
+        leftoutbuf = zeroBuf;
+    }
+    if(rightouteffect == inst->name){
+        rightouteffect = "zero";
+        rightoutport = "zero";
+        rightoutbuf = zeroBuf;
+    }
+    
+    // remove it from the map
+    fxmap.erase(inst->name);
+    // and from the list
+    fxlist.erase(fxlist.begin()+idx);
+    
+    // now we can delete it.
+    delete inst;
+    
+    
+    // and fixup the inputs again
+    resolveInputs(false);
+}

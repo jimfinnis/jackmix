@@ -7,9 +7,9 @@
 * add chain
     * creates a null chain, ensure that works
     * automatically creates a return channel
-- remove chain
-    - removal must remove all sends for this chain from channels
-    - remove the return channel
+* remove chain
+    * removal must remove all sends for this chain from channels
+    * remove the return channel
 
 * add effect to chain
 - remove effect from chain

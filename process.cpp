@@ -183,6 +183,9 @@ void Process::processCommand(ProcessCommand& c){
     case DeleteChain:
         ChainInterface::deleteChain(c.arg0);
         break;
+    case DeleteEffect:
+        ChainInterface::deleteEffect(c.arg0,c.arg1);
+        break;
     }
 }
 

@@ -39,6 +39,7 @@ enum ProcessCommandType {
           RemapOutput,
           AddChain,             // s(name)
           DeleteChain,          // arg0(chain index)
+          DeleteEffect,         // arg0(chain index),arg1(effect index)
           AddChannel            // s(name),arg0(1/2 [mono/stereo])
 };
 
