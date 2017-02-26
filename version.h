@@ -7,8 +7,8 @@
 #ifndef __VERSION_H
 #define __VERSION_H
 
-// rainbow code index 5
-#define VERSION "v0.0.0 JASPER AMUSEMENT" 
+// rainbow code index 16
+#define VERSION "v0.1.0 GREEN ACOUSTIC"
 
 
 #endif /* __VERSION_H */
