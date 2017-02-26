@@ -60,9 +60,9 @@ void ChanScreen::display(MonitorData *d){
         mvaddstr(10,0,"Pan");
         
         int ww = w-20;
-        drawHorzBar(3,10,1,ww,c->l,NULL,Gain,false);
-        drawHorzBar(5,10,1,ww,c->r,NULL,Gain,false);
-        drawHorzBar(8,10,1,ww,c->gain,c->chan->gain,Green,curparam==0);
+        drawHorzBar(3,10,1,ww,c->l,NULL,VU,false);
+        drawHorzBar(5,10,1,ww,c->r,NULL,VU,false);
+        drawHorzBar(8,10,1,ww,c->gain,c->chan->gain,Gain,curparam==0);
         drawHorzBar(10,10,1,ww,c->pan,c->chan->pan,Pan,curparam==1);
         
         for(unsigned int i=0;i<curchanptr->chains.size();i++){

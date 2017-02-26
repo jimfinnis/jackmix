@@ -16,6 +16,10 @@
 #define VALOPTS_MIN 1
 #define VALOPTS_MAX 2
 
+// standard range for dB gains
+#define MINDB -60.0f
+#define MAXDB 6.0f
+
 // these are the values used in the mixer: pan positions, gains etc.
 // and effect parameters. They can either be constants, or have a default
 // value but be modifiable from a control channel.
@@ -60,20 +64,18 @@ public:
     int optsset;
     /// Range -  typically -60 to 0 for DB but doesn't have to be.
     float mn,mx;
-    /// if true, value is expected to be -60 - 0 and is converted
-    /// to a ratio 0-1 on setTarget(). 
+    /// if true, value is converted on get()
     bool db;
     /// what external controller, if any, is controlling me. Generally
     /// used only for information (saving, monitoring).
     class Ctrl *ctrl;
-    
     
     /// set the default
     Value *setdef(float def){
         deflt=def;
         return this;
     }
-    /// set DB (decibel conversion will be done on setTarget())
+    /// set DB (decibel conversion will be done in get()))
     Value *setdb(){
         db=true;
         return this;
@@ -89,21 +91,19 @@ public:
         return this;
     }
     
+    /// set the standard range for dB gains
+    Value *setdbrange(){
+        return setrange(MINDB,MAXDB);
+    }
+    
     /// set the value - actually sets the target
     /// value of an LPF to avoid artifacts. The value itself is set
-    /// in update(). Performs db conversion.
+    /// in update().
     
     void setTarget(float v){
         if(v>mx)v=mx;
         if(v<mn)v=mn;
-        if(db)
-            target=powf(10.0,v*0.1f);
-        else
-            target=v;
-    }
-    
-    float getTarget(){
-        return target;
+        target=v;
     }
     
     /// sets the target value, converting from 0-1 first.
@@ -115,13 +115,18 @@ public:
     
     /// convert from target value to 0-1 range (used for nudge,etc.)
     float convertFromTarget(){
-        // db conversion required perhaps
-        float f = db ? 10.0*log10(target) : target;
-        return (f-mn)/(mx-mn);
+        return (target-mn)/(mx-mn);
     }
     
-    /// get the value
+    /// get the value for actual use (i.e. do dB conversion)
     float get(){
+        if(db)
+            return powf(10.0,value*0.1f);
+        else
+            return value;
+    }
+    /// get the value without dB conversion
+    float getNoDBConvert(){
         return value;
     }
     
@@ -134,8 +139,7 @@ public:
     
     /// reset value and target to default
     Value* reset(){
-        value = db ? powf(10.0,deflt*0.1f) : deflt;
-        target=value;
+        value = target = deflt;
         return this;
     }
     

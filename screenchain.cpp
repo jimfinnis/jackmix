@@ -155,7 +155,7 @@ void ChainScreen::display(MonitorData *d){
             }
         }
     } else {
-        attrset(COLOR_PAIR(PAIR_RED));
+        attrset(COLOR_PAIR(PAIR_REDTEXT));
         mvaddstr(1,25,"No chain data");
         attrset(COLOR_PAIR(0));
     }

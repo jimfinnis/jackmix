@@ -36,7 +36,7 @@ Value *parseValue(Bounds b,Value *v=NULL)
         case T_DB:
             v->setdb();
             // might get overwritten later..
-            rmin=-60;rmax=0;
+            rmin=MINDB;rmax=MAXDB;
             break;
         case T_MIN:
             if(b.flags & Bounds::Lower)

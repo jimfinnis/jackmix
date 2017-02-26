@@ -47,7 +47,7 @@ static pthread_cond_t cmdcond = PTHREAD_COND_INITIALIZER;
 
 void Process::init(){
     masterGain = (new Value())->
-          setdb()->setrange(-60,0)->setdef(0)->reset();
+          setdb()->setdbrange()->setdef(0)->reset();
     masterPan = (new Value())->
           setdef(0)->setrange(0,1)->setdef(0.5)->reset();
 }    
@@ -148,14 +148,14 @@ void Process::processCommand(ProcessCommand& c){
     case AddSend:{
         // Will leave a dangling value. No biggie.
         Value *v = new Value();
-        v->setdb()->setrange(-60,0)->setdef(0)->reset();
+        v->setdb()->setdbrange()->setdef(0)->reset();
         c.chan->addChainInfo(c.s,v,false,ChainInterface::find(c.s));
         break;
     }
     case AddChannel:{
         // Will leave 2 dangling values. Bit more biggie.
         Value *g = new Value();
-        g->setdb()->setrange(-60,0)->setdef(0)->reset();
+        g->setdb()->setdbrange()->setdef(0)->reset();
         Value *p = new Value();
         p->setrange(0,1)->setdef(0.5)->reset();
         new Channel(c.s,c.arg0,g,p,false);
@@ -258,7 +258,7 @@ int Process::callbackProcess(jack_nframes_t nframes, void *arg){
         MonitorData m;
         m.master.l = masterMonL.get();
         m.master.r = masterMonR.get();
-        m.master.gain = masterGain->get();
+        m.master.gain = masterGain->getNoDBConvert();
         m.master.pan = masterPan->get();
         Channel::writeMons(&m);
         monring.write(m);

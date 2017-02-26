@@ -18,7 +18,7 @@
       control, or add a control and select that. I suspect the flow
       for this inside the UI would be messy. Or not? Just push the
       control edit screen?
-      
+- ensure controllers also work in no-gui mode
 
 
 

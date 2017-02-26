@@ -23,6 +23,7 @@ static const char *MainHelpCol1[] = {
     "{z,x}      - prev/next channel",
     "{UP/DOWN}  - nudge gain",
     "{LFT/RGT}  - nudge pan",
+    "{DEL}      - delete channel",
     "{q}        - quit",
     "{s}        - solo channel",
     "{m}        - mute channel",
@@ -42,7 +43,7 @@ static const char *MainHelpCol1[] = {
     "{v}        - set value of parameter",
     "{s}        - solo channel",
     "{m}        - mute channel",
-    "{DEL}      - remove send",
+    "{DEL}      - delete send",
     "{t}        - toggle send pre/post",
     "{a}        - add send",
     NULL

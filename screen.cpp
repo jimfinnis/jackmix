@@ -27,17 +27,24 @@ void Screen::drawVertBar(int y, int x, int h, int w,
     float mn,mx;
     if(rv){
         mn = rv->mn; mx = rv->mx;
-        // we only do decibel conversion of the range
-        if(rv->db){
-            mn = powf(10.0f,mn*0.1f);
-            mx = powf(10.0f,mx*0.1f);
-        }
     } else {
-        mn=0;mx=1;
+        // if barmode is VU, we convert to dB.
+        if(mode==VU){
+            mn=MINDB;mx=MAXDB;
+        } else {
+            mn=0;mx=1;
+        }
     }
     
+    // VU meters get absolute, we want to convert to dB
+    if(mode==VU){
+        if(v<1e-6)
+            v=-60.0;
+        else
+            v = 10.0f*log10(v);
+    }
     
-    // we DON'T do decibel conversion.
+    // convert to 0-1
     v -= mn;
     v /= (mx-mn);
     
@@ -46,11 +53,18 @@ void Screen::drawVertBar(int y, int x, int h, int w,
     int red = h*0.9f;
     int half = h/2;
     
+    float zeropos = (h*(-mn))/(mx-mn);
+    
     for(int i=0;i<h;i++){
         int col;
         bool rev=true;
         switch(mode){
-        case Gain:
+        case Gain:case VU:
+            if(i>=zeropos){
+                attrset(COLOR_PAIR(0)|A_BOLD);
+                mvaddch(h-(y+i)+3,x+w+2,'-');
+                zeropos = h+20; // ignore more
+            }
             if(i>val){
                 col=PAIR_DARK;rev=false;}
             else if(i>red)
@@ -86,16 +100,24 @@ void Screen::drawHorzBar(int y, int x, int h, int w,
     float mn,mx;
     if(rv){
         mn = rv->mn; mx = rv->mx;
-        // we only do decibel conversion of the range
-        if(rv->db){
-            mn = powf(10.0f,mn*0.1f);
-            mx = powf(10.0f,mx*0.1f);
-        }
     } else {
-        mn=0;mx=1;
+        // if barmode is VU, we convert to dB.
+        if(mode==VU){
+            mn=MINDB;mx=MAXDB;
+        } else {
+            mn=0;mx=1;
+        }
     }
     
-    // we DON'T do decibel conversion.
+    // VU meters get absolute, we want to convert to dB
+    if(mode==VU){
+        if(v<1e-6)
+            v=-60.0;
+        else
+            v = 10.0f*log10(v);
+    }
+    
+    // convert to 0-1
     v -= mn;
     v /= (mx-mn);
     
@@ -111,12 +133,11 @@ void Screen::drawHorzBar(int y, int x, int h, int w,
         mvaddstr(y+1,x+w-strlen(buf),buf);
     }
         
-    
     for(int i=0;i<w;i++){
         int col;
         bool rev=true;
         switch(mode){
-        case Gain:
+        case Gain:case VU:
             if(i>val){rev=true;
                 col=PAIR_DARK;}
             else if(i>red)

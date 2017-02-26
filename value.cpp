@@ -37,8 +37,8 @@ string Value::toString(){
     if(optsset & VALOPTS_MAX)
         ss << "max " << mx << " ";
     
-    // the value itself (with gain->db conversion if required)
-    ss << (db?10.0f*log10f(target):target);
+    // the value itself
+    ss << target;
     
     if(ctrl){
         ss << "(" << ctrl->nameString << ") ";

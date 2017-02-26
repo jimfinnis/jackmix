@@ -12,7 +12,8 @@
 #include "colours.h"
 
 /// vert/horz bar types
-enum BarMode { Gain, // green/yellow/red
+enum BarMode { VU, // vu meter - green/yellow/red, monitors ratios, converts to dB
+          Gain, // gain meter - green/yellow/red, monitors dB
           Green, // all green
           Pan  // green, centered at 0.5
 }; 

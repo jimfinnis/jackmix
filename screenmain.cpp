@@ -115,9 +115,9 @@ void MainScreen::displayChan(int i,ChanMonData* c,bool cur){
     
     
     // inputs to pan/gain bars are range 0-1 unless a value is given
-    drawVertBar(2,x,h-3,1,l,NULL,Gain,false);
-    drawVertBar(2,x+2,h-3,1,r,NULL,Gain,false);
-    drawVertBar(2,x+4,h-3,1,gain,gv,Green,cur);
+    drawVertBar(2,x,h-3,1,l,NULL,VU,false);
+    drawVertBar(2,x+2,h-3,1,r,NULL,VU,false);
+    drawVertBar(2,x+4,h-3,1,gain,gv,Gain,cur);
     drawVertBar(2,x+6,h-3,1,pan,pv,Pan,cur);
     
     attrset(COLOR_PAIR(0));
@@ -143,11 +143,11 @@ void MainScreen::commandPanNudge(float v){
 }
 
 void MainScreen::flow(InputManager *im){
+    stringstream ss;
     int c = im->getKey();
     switch(c){
     case 'p':
         if(curchanptr){
-            stringstream ss;
             ss << curchanptr->name << " pan";
             im->editVal(ss.str(),curchanptr->pan);
         } else {
@@ -156,7 +156,6 @@ void MainScreen::flow(InputManager *im){
         break;
     case 'g':
         if(curchanptr){
-            stringstream ss;
             ss << curchanptr->name << " gain";
             im->editVal(ss.str(),curchanptr->gain);
         } else {
@@ -183,11 +182,11 @@ void MainScreen::flow(InputManager *im){
         }
         break;
     }
-    case 'r':{
+    case KEY_DC:{
         if(curchanptr){
             if(curchanptr->isReturn())
                 im->setStatus("Channel is a return channel - delete the chain instead",4);
-            else if(im->getKey("are you sure?","yn")=='y'){
+            else if(im->getKey("remove channel - are you sure?","yn")=='y'){
                 ProcessCommand cmd(ProcessCommandType::DelChan);
                 cmd.setchan(curchanptr);
                 Process::writeCmd(cmd);

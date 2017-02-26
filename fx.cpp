@@ -182,7 +182,7 @@ void ChainInterface::addNewEmptyChain(string n){
     chainlist.push_back(&chain);
     string retname = "R"+n;
     Value *g = new Value();
-    g->setdb()->setrange(-60,0)->setdef(-50)->reset();
+    g->setdb()->setdbrange()->setdef(-50)->reset();
     Value *p = new Value();
     p->setrange(0,1)->setdef(0.5)->reset();
     Channel *c = new Channel(retname,2,g,p,true,n);

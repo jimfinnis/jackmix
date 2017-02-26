@@ -24,6 +24,13 @@ Channel::~Channel(){
     std::vector<Channel *> &vec = leftport ? inputchans : returnchans;
     // and apparently C++ is a *good* language?
     vec.erase(std::remove(vec.begin(),vec.end(),this),vec.end());
+    
+    // and now delete the ports
+    if(leftport)
+        jack_port_unregister(Process::client,leftport);
+    if(rightport)
+        jack_port_unregister(Process::client,rightport);
+          
 }
     
     
@@ -73,7 +80,7 @@ void Channel::writeMons(MonitorData *m){
         if(cm){
             cm->init(c->name,
                      c->monl.get(),c->monr.get(),
-                     c->gain->get(),c->pan->get(),c);
+                     c->gain->getNoDBConvert(),c->pan->get(),c);
         }
     }
     for(it=returnchans.begin();it!=returnchans.end();it++){
@@ -82,7 +89,7 @@ void Channel::writeMons(MonitorData *m){
         if(cm){
             cm->init(c->name,
                      c->monl.get(),c->monr.get(),
-                     c->gain->get(),c->pan->get(),c);
+                     c->gain->getNoDBConvert(),c->pan->get(),c);
         }
     }
 }
