@@ -46,9 +46,9 @@ static pthread_mutex_t cmdmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cmdcond = PTHREAD_COND_INITIALIZER;
 
 void Process::init(){
-    masterGain = (new Value())->
+    masterGain = (new Value("master gain"))->
           setdb()->setdbrange()->setdef(0)->reset();
-    masterPan = (new Value())->
+    masterPan = (new Value("master pan"))->
           setdef(0)->setrange(0,1)->setdef(0.5)->reset();
 }    
 
@@ -147,16 +147,19 @@ void Process::processCommand(ProcessCommand& c){
         break;
     case AddSend:{
         // Will leave a dangling value. No biggie.
-        Value *v = new Value();
+        Value *v = new Value(c.chan->name+"->"+c.s+" gain");
         v->setdb()->setdbrange()->setdef(0)->reset();
         c.chan->addChainInfo(c.s,v,false,ChainInterface::find(c.s));
         break;
     }
     case AddChannel:{
+        char buf[128];
         // Will leave 2 dangling values. Bit more biggie.
-        Value *g = new Value();
+        snprintf(buf,128,"%s gain",c.s);
+        Value *g = new Value(buf);
         g->setdb()->setdbrange()->setdef(0)->reset();
-        Value *p = new Value();
+        snprintf(buf,128,"%s pan",c.s);
+        Value *p = new Value(buf);
         p->setrange(0,1)->setdef(0.5)->reset();
         new Channel(c.s,c.arg0,g,p,false);
     } break;

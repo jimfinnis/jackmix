@@ -42,7 +42,7 @@ public:
     unordered_map<int,float*> connections; // for debugging snark
     
     // will instantiate, set default controls etc.
-    PluginInstance(struct PluginData *plugin,string name);
+    PluginInstance(struct PluginData *plugin,string name,string chainname);
     // will deactivate if required/cleanup
     ~PluginInstance();
     
@@ -83,7 +83,7 @@ struct PluginData {
     
     
     
-    PluginInstance *instantiate(string name);
+    PluginInstance *instantiate(string name,string chainname);
 };
 
 

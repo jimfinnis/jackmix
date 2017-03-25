@@ -26,6 +26,13 @@ Ctrl *Ctrl::createOrFind(string name){
     return v;
 }
 
+Ctrl::~Ctrl() {
+    map.erase(nameString);
+    delete ring;
+}
+
+
+
 void Ctrl::checkAllCtrlsForSource(){
     unordered_map<string,Ctrl *>::iterator it;
     for(it=map.begin();it!=map.end();it++){

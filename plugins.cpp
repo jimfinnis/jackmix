@@ -167,7 +167,7 @@ static std::vector<PluginInstance *> instances;
 // instantiate this plugin and connect all control ports
 // to default values - this may be overwritten by actual
 // Values.
-PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128){
+PluginInstance::PluginInstance(PluginData *plugin,string n,string chainname) : portsConnected(128){
     p=plugin;
     name = n;
     h=(*p->desc->instantiate)(p->desc,Process::samprate);
@@ -184,7 +184,7 @@ PluginInstance::PluginInstance(PluginData *plugin,string n) : portsConnected(128
                 initval = 0; // really, there should be a default.
             
             Bounds b = plugin->getBounds(p->desc->PortNames[i]);
-            Value *v = new Value();
+            Value *v = new Value(chainname+"/"+n+"/"+std::string(p->desc->PortNames[i]));
             // if no upper or lower bound set, what to do???
             // Just set to the default val for now.
             v->mx = (b.flags & Bounds::Upper)?b.upper:initval+1000;
@@ -267,8 +267,8 @@ void PluginMgr::deleteInstances(){
     }
 }
 
-PluginInstance *PluginData::instantiate(string name){
-    return new PluginInstance(this,name);
+PluginInstance *PluginData::instantiate(string name,string chainname){
+    return new PluginInstance(this,name,chainname);
 }
 
 // data about the plugin in a file.

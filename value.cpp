@@ -22,6 +22,14 @@ void Value::updateAll(){
         (*it)->update();
     }
 };
+
+void Value::dump(){
+    vector<Value *>::iterator it;
+    for(it=values.begin();it!=values.end();it++){
+        Value *v = *it;
+        cout << v->name << endl;
+    }
+};
               
 string Value::toString(){
     stringstream ss;

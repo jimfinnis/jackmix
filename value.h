@@ -11,6 +11,7 @@
 #include <math.h>
 #include <vector>
 #include <string>
+#include <iostream>
 
 // optsset flags
 #define VALOPTS_MIN 1
@@ -44,7 +45,8 @@ class Value {
     
     
 public:
-    Value(){
+    Value(std::string nm){
+        name = nm;
         deflt=0;
         smooth=0.5;
         db=false;
@@ -53,11 +55,19 @@ public:
         values.push_back(this);
     }
     
+    // list names for debug
+    static void dump();
+        
+    
     ~Value();
     
     float *getptr(){
         return &value;
     }
+    
+    /// an identifying name used in the controller screen, and not
+    /// many other places
+    std::string name;
     
     /// which options (max, min etc.) have been used if it's hard to
     /// tell by just examining the value - used for saving config.
@@ -94,6 +104,12 @@ public:
     /// set the standard range for dB gains
     Value *setdbrange(){
         return setrange(MINDB,MAXDB);
+    }
+    
+    /// set the name
+    Value *setname(std::string nm){
+        name = nm;
+        return this;
     }
     
     /// set the value - actually sets the target

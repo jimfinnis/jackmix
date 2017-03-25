@@ -146,5 +146,6 @@ int main(int argc,char *argv[]){
         Process::shutdown();
         cout << "Fatal error: " << s << endl;
     }
+    Value::dump();
     Process::shutdown();
 }

@@ -181,9 +181,9 @@ void ChainInterface::addNewEmptyChain(string n){
     chain.name = n;
     chainlist.push_back(&chain);
     string retname = "R"+n;
-    Value *g = new Value();
+    Value *g = new Value(n+" ret gain");
     g->setdb()->setdbrange()->setdef(-50)->reset();
-    Value *p = new Value();
+    Value *p = new Value(n+" ret pan");
     p->setrange(0,1)->setdef(0.5)->reset();
     Channel *c = new Channel(retname,2,g,p,true,n);
     c->resolveReturnChannel();
@@ -227,7 +227,7 @@ void parseEffect(Chain &c){
     PluginData *p = PluginMgr::getPlugin(label);
     
     // Create an actual instance of the plugin
-    PluginInstance *i = p->instantiate(name);
+    PluginInstance *i = p->instantiate(name,c.name);
     
     // get the input names, we'll resolve them later
     
@@ -273,7 +273,7 @@ void parseEffect(Chain &c){
     
     if(tok.getnext()!=T_PARAMS)expected("'params'");
     
-    parseList([&p,&i]{
+    parseList([&p,&i,&c,&name]{
               // get param name (long or short, string or ident)
               int t = tok.getnext();
               if(t!=T_STRING && t!=T_IDENT)
@@ -282,6 +282,7 @@ void parseEffect(Chain &c){
               
               // parse the value, using the LADSPA hints for the param
               Value *v = parseValue(p->getBounds(pname));
+              v->setname(c.name+"/"+name+"/"+pname);
               printf("Param %s: %f\n",pname.c_str(),v->get());
               // and connect it
               i->connect(pname,v->getAddr());
@@ -470,12 +471,12 @@ void ChainInterface::saveAll(ostream &out){
     out << "}\n";
 }
 
-void Chain::addEffect(PluginData *d,string name){
+void Chain::addEffect(PluginData *d,string n){
     // here we have to add the effect to the chain and also 
     // revise the input connection structures
     
     // instantiate the plugin
-    PluginInstance *inst = d->instantiate(name);
+    PluginInstance *inst = d->instantiate(n,name);
     
     // add a new input connection data block
     vector<InputConnectionData> *ipdp = new vector<InputConnectionData>();
@@ -510,7 +511,7 @@ void Chain::addEffect(PluginData *d,string name){
     inst->activate();
     // add the effect to the chain
     fxlist.push_back(inst);
-    fxmap[name]=inst;
+    fxmap[n]=inst;
 }
 
 

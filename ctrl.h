@@ -25,9 +25,6 @@ class Ctrl {
     /// in into the 0-1 range. 
     float inmin,inmax;
     
-    /// A list of the values this ctrl controls
-    std::vector<Value *> values;
-    
     /// and there is a map of all the control channels
     static std::unordered_map<std::string,Ctrl *> map;
     
@@ -63,6 +60,11 @@ public:
     /// name string copy, for information only. Set in setsource()
     std::string nameString;
     
+    /// A list of the values this ctrl controls. Read in the controller
+    /// screen, but fGs don't change it.
+    
+    std::vector<Value *> values;
+    
     Ctrl(std::string name){
         nameString = name;
         hasSource=false;
@@ -70,9 +72,7 @@ public:
         ring = new RingBuffer<float>(20);
     }
     
-    ~Ctrl(){
-        delete ring;
-    }
+    virtual ~Ctrl();
         
     Ctrl *setinrange(float mn,float mx){
         inmin=mn;inmax=mx;

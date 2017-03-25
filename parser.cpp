@@ -24,7 +24,7 @@ Tokeniser tok;
 Value *parseValue(Bounds b,Value *v=NULL)
 {
     if(!v)
-        v = new Value();
+        v = new Value("");
     
     float rmin=0,rmax=1;
     float smooth = 0.5;
@@ -105,7 +105,6 @@ optsdone:
     return v;
 }
 
-
 void parseChan(){
     string name=getnextident();
     
@@ -124,10 +123,12 @@ void parseChan(){
     if(tok.getnext()!=T_GAIN)
         expected("'gain'");
     Value *gain = parseValue(Bounds());
+    gain->setname(name+" gain");
     
     if(tok.getnext()!=T_PAN)
         expected("'pan'");
     Value *pan = parseValue(Bounds());
+    pan->setname(name+" pan");
     
     bool mono=false;
     switch(tok.getnext()){
@@ -147,6 +148,7 @@ void parseChan(){
         string chain = getnextident();
         if(tok.getnext()!=T_GAIN)expected("'gain'");
         Value *chaingain=parseValue(Bounds());
+        chaingain->setname(name+"->"+chain+" gain");
         
         int t = tok.getnext();
         bool postfade=false;
@@ -209,9 +211,9 @@ void parsePlugin(){
 
 void parseMaster(){
     if(tok.getnext()!=T_GAIN)expected("'gain'");
-    parseValue(Bounds(),Process::masterGain);
+    parseValue(Bounds(),Process::masterGain)->setname("master gain");
     if(tok.getnext()!=T_PAN)expected("'pan'");
-    parseValue(Bounds(),Process::masterPan);
+    parseValue(Bounds(),Process::masterPan)->setname("master pan");
 }
 
 /// parses the config file as a single string
