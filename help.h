@@ -66,6 +66,15 @@ static const char *MainHelpCol2[] = {
     "[     Chain mode: effect]",
     "{UP/DOWN}  - select parameter",
     "{LFT/RGT}  - change parameter",
+    "",
+    "[    Controller edit mode]",
+    "{ENTER/q}  - return to main mode",
+    "{TAB}      - ctrl list/value list",
+    "{UP}       - previous ctrl/value",
+    "{DOWN}     - next ctrl/value",
+    "{DEL}      - delete ctrl/val. link",
+    "{r}        - set/reset input range",
+    "{a}        - add new controller",
     
     NULL
 };

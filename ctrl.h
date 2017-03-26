@@ -15,21 +15,27 @@
 #include "value.h"
 #include "ringbuffer.h"
 
+/// types of source (midi, diamond etc)
+enum SourceType {
+    NONE, // shouldn't happen
+          DIAMOND,
+          MIDI
+};
+
 /// this is a control channel, used to manage a list of values.
 /// It has an input range, which converts whatever the incoming
 /// data is into 0-1. This is converted to the value range
 /// by setTargetConvert() in Value.
 
 class Ctrl {
+    friend class CtrlScreen; // so we can show the range
+    
     /// the input mapping values, which convert the data coming
     /// in into the 0-1 range. 
     float inmin,inmax;
     
     /// and there is a map of all the control channels
     static std::unordered_map<std::string,Ctrl *> map;
-    
-    /// true if this ctrl has an external data source defined
-    bool hasSource;
     
     /// this is a ring buffer - it is used to pass ctrl change data
     /// from the reader thread for particular source types into
@@ -53,12 +59,14 @@ class Ctrl {
     }
 
 public:
-    static Ctrl *createOrFind(std::string name);
+    static Ctrl *createOrFind(std::string name, bool nocreate=false);
+    /// name string copy, for information only. Set in setsource()
+    std::string nameString;
     
     /// source string copy, for information only. Set in setsource()
     std::string sourceString;
-    /// name string copy, for information only. Set in setsource()
-    std::string nameString;
+    /// the type of the source
+    SourceType sourceType;
     
     /// A list of the values this ctrl controls. Read in the controller
     /// screen, but fGs don't change it.
@@ -67,7 +75,7 @@ public:
     
     Ctrl(std::string name){
         nameString = name;
-        hasSource=false;
+        sourceType = NONE;
         inmin=0;inmax=1;
         ring = new RingBuffer<float>(20);
     }
@@ -78,6 +86,20 @@ public:
         inmin=mn;inmax=mx;
         return this;
     }
+    
+    // set default in-range for this controller type
+    Ctrl *setrangedefault(){
+        switch(sourceType){
+        case MIDI:
+            return setinrange(0,127);
+        case NONE:
+        case DIAMOND:
+        default:
+            return setinrange(0,1);
+        }
+    }
+            
+        
     
     /// sets the source for a control - parses the spec crudely
     /// to work out what type of source, and calls code to add the
@@ -91,6 +113,7 @@ public:
     /// must control DB values, but we don't check that here - we
     /// do it after all parsing.
     void addval(Value *v){
+        removeAllAssociations(v);
         values.push_back(v);
         v->setctrl(this);
     }
@@ -121,7 +144,7 @@ public:
     /// any, it will be passed down to the values.
     static void pollAllCtrlRings();
     
-    /// remove this value from all controls (it has been deleted)
+    /// remove this value from all controls (it has been deleted or reassociated)
     static void removeAllAssociations(Value *v);
     
     

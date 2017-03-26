@@ -13,11 +13,13 @@
 using namespace std;
 unordered_map<string,Ctrl *> Ctrl::map;
 
-Ctrl *Ctrl::createOrFind(string name){
+Ctrl *Ctrl::createOrFind(string name,bool nocreate){
     Ctrl *v;
     unordered_map<string,Ctrl *>::iterator res;
     res = map.find(name);
     if(res==map.end()){
+        if(nocreate)
+            return NULL;
         v = new Ctrl(name);
         map.emplace(name,v);
     } else {
@@ -27,6 +29,7 @@ Ctrl *Ctrl::createOrFind(string name){
 }
 
 Ctrl::~Ctrl() {
+    removeDiamondReferences(this);
     Value::removeCtrl(this);
     map.erase(nameString);
     delete ring;
@@ -50,7 +53,7 @@ void Ctrl::checkAllCtrlsForSource(){
     unordered_map<string,Ctrl *>::iterator it;
     for(it=map.begin();it!=map.end();it++){
         Ctrl *c = it->second;
-        if(!c->hasSource){
+        if(c->sourceType == NONE){
             string s = ("ctrl '"+it->first+ "' has no source defined");
             cout << s << endl;
         }
@@ -87,8 +90,7 @@ Ctrl *Ctrl::setsource(string spec){
     sourceString = spec;
     // just assume diamond for now
     addDiamondSource(spec,this);
-    
-    hasSource=true;
+    sourceType=DIAMOND;
     return this;
 }
 
@@ -106,7 +108,7 @@ void Ctrl::saveAll(ostream &out){
         stringstream ss;
         Ctrl *c = it->second;
         // only bother with ctrls we actually have sources for 
-        if(c->hasSource){ 
+        if(c->sourceType != NONE){ 
             c->save(ss);
             strs.push_back(ss.str());
         }

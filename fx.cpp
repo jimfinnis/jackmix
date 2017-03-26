@@ -288,15 +288,14 @@ void parseEffect(Chain &c){
               // and connect it
               i->connect(pname,v->getAddr());
               
-              // we're replacing a default value! Has this somehow got a ctrl attached to it?
-              // that can only have happened if this is a duplicate entry.
-              if(i->paramsMap[pname]->getCtrl())
-                  throw _("duplicate entry in parameters? %s/%s:%s",
-                      c.name.c_str(),name.c_str(),pname.c_str());
-              
-              
-              
-              delete i->paramsMap[pname];
+              if(i->paramsMap[pname]){
+                  // we're replacing a default value! Has this somehow got a ctrl attached to it?
+                  // that can only have happened if this is a duplicate entry.
+                  if(i->paramsMap[pname]->getCtrl())
+                      throw _("duplicate entry in parameters? %s/%s:%s",
+                          c.name.c_str(),name.c_str(),pname.c_str());
+                  delete i->paramsMap[pname];
+              }
               i->paramsMap[pname]=v;
           });
     

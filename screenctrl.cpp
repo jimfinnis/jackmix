@@ -63,6 +63,7 @@ void CtrlScreen::display(MonitorData *d){
     if(curctrl>=0){
         Ctrl *c = lst[curctrl];
         
+        // value list
         attrset(0);
         mvaddstr(0,30,"Controller ");
         attrset(COLOR_PAIR(PAIR_HILIGHT));
@@ -80,13 +81,36 @@ void CtrlScreen::display(MonitorData *d){
                 attrset((int)idx==curval ? COLOR_PAIR(PAIR_HILIGHT)
                         | (mode==VALLIST ? A_BOLD:0)
                               : COLOR_PAIR(0));
-                stringstream ss;
-                ss << c->values[idx]->name;
-                mvaddstr(i+3,30,ss.str().c_str());
+                mvaddstr(i+3,30,c->values[idx]->name.c_str());
             }
         }
         attrset(COLOR_PAIR(PAIR_BLUETEXT)|A_BOLD);
         mvprintw(valpagesize+3,30,"page %d/%d",valpage+1,valpages);
+        
+        // now the other parameters
+        attrset(COLOR_PAIR(PAIR_HILIGHT));
+        mvaddstr(0,60,"Source: ");
+        attrset(0);
+        addstr(c->sourceString.c_str());
+        attrset(COLOR_PAIR(PAIR_HILIGHT));
+        switch(c->sourceType){
+        case DIAMOND:
+            addstr(" (DiamondApparatus)");break;
+        case MIDI:
+            addstr(" (MIDI CC)");break;
+        case NONE:
+        default:
+            addstr(" (NO SOURCE)");break;
+        }
+        
+        mvaddstr(1,60,"Input range: ");
+        attrset(0);
+        stringstream ss;
+        ss << "[" << c->inmin << ":" << c->inmax << "]";
+        addstr(ss.str().c_str());
+        
+        
+
         
     }
     
@@ -104,7 +128,6 @@ void CtrlScreen::flow(InputManager *im){
     int vlsize = ctrl ? ctrl->values.size() : 0;
     if(curval<0)curval=vlsize-1;
     if(curval>=vlsize)curval=0;
-    
     
     int c = im->getKey();
     
@@ -134,22 +157,84 @@ void CtrlScreen::flow(InputManager *im){
             curval++;
         break;
     case KEY_DC:
-        if(ctrl && im->getKey("Delete ctrl - are you sure?","yn")){
-            ProcessCommand cmd(ProcessCommandType::DeleteCtrl);
-            cmd.setctrl(ctrl);
-            Process::writeCmd(cmd);
+        if(mode == CTRLLIST){
+            if(ctrl && im->getKey("Delete ctrl - are you sure?","yn")){
+                ProcessCommand cmd(ProcessCommandType::DeleteCtrl);
+                cmd.setctrl(ctrl);
+                Process::writeCmd(cmd);
+            }
+        } else {
+            if(ctrl && curval>=0 && im->getKey("Delete value association - are you sure?","yn")){
+                ProcessCommand cmd(ProcessCommandType::DeleteCtrlAssoc);
+                cmd.setctrl(ctrl);
+                cmd.setvalptr(ctrl->values[curval]);
+                Process::writeCmd(cmd);
+            }
         }
         break;
-    case'-':
-        if(ctrl && curval>=0 && im->getKey("Delete value association - are you sure?","yn")){
-            ProcessCommand cmd(ProcessCommandType::DeleteCtrlAssoc);
+    case 'r':
+        if(ctrl){
+            bool ab;
+            ProcessCommand cmd;
             cmd.setctrl(ctrl);
-            cmd.setvalptr(ctrl->values[curval]);
-            Process::writeCmd(cmd);
+            switch(im->getKey("Modify input range: yes, no, or reset to default?","ynd")){
+            case 'y':{
+                float mn,mx;
+                try {
+                    string s = im->getString("Minimum",&ab);
+                    if(ab)break;
+                    mn = stof(s);
+                    s = im->getString("Maximum",&ab);
+                    if(ab)break;
+                    mx = stof(s);
+                } catch(...){
+                    im->setStatus("Not a number in input",4);
+                    mn=0;mx=1;
+                }
+                if(mx<=mn)
+                    im->setStatus("Maximum must be greater than minimum",4);
+                else {
+                    cmd.setcmd(ProcessCommandType::SetCtrlRange)
+                          ->setfloat(mn)->setfloat1(mx);
+                    Process::writeCmd(cmd);
+                }
+            }
+                break;
+            case 'd':
+                cmd.setcmd(ProcessCommandType::SetCtrlRangeDefault);
+                Process::writeCmd(cmd);
+                break;
+            default:
+            case 'n':break;
+            }
+            break;
+        }
+    case 'a':
+        {
+            bool ab;
+            string n = im->getString("Controller name",&ab);
+            if(!ab){
+                if(Ctrl::createOrFind(n,true))
+                    im->setStatus("Controller already exists!",4);
+                else {
+                    ProcessCommand cmd(ProcessCommandType::NewCtrl);
+                    cmd.setstr(n);
+                    int typekey = im->getKey("Controller type (MIDI, Diamond, quit)","mdq");
+                    if(typekey!='q'){
+                        string spec = im->getString("Source specification",&ab);
+                        if(!ab){
+                            // DEAL WITH THE TYPE when you do midi ctrl, perhaps by prebuilding
+                            // a spec string.
+                            cmd.setstr2(spec);
+                            Process::writeCmd(cmd);
+                        }
+                    }
+                }
+            }
         }
         break;
-        
-    default:break;
+    default:
+        break;
     }
     
 }

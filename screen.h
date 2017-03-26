@@ -30,6 +30,9 @@ public:
     virtual void onEntry(){}
 protected:
     
+    // command used by several screens to add a ctrl to a value.
+    void commandAddCtrl(class Value *v);
+    
     void title(const char *s);
     void setStatus(const char *s,double t=2);
     // v is 0-1 linear unless rv (range value) is present. We treat v and rv separately

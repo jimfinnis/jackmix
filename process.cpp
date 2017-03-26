@@ -196,6 +196,21 @@ void Process::processCommand(ProcessCommand& c){
     case DeleteCtrlAssoc:
         c.ctrl->remval(c.vp);
         break;
+    case SetCtrlRange:
+        c.ctrl->setinrange(c.v,c.v1);
+        break;
+    case SetCtrlRangeDefault:
+        c.ctrl->setrangedefault();
+        break;
+    case NewCtrl:
+        {
+            Ctrl *ctrl = Ctrl::createOrFind(c.s);
+            ctrl->setsource(c.s2);
+        }
+        break;
+    case AddCtrl:
+        c.ctrl->addval(c.vp);
+        break;
     }
 }
 

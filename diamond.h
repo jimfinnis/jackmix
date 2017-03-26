@@ -8,6 +8,7 @@
 #define __DIAMOND_H
 
 void addDiamondSource(std::string source,Ctrl *c);
+void removeDiamondReferences(Ctrl *c);
 void pollDiamond();
 void initDiamond();
 

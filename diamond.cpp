@@ -51,6 +51,20 @@ void addDiamondSource(string source,Ctrl *c){
     }
 }
 
+void removeDiamondReferences(Ctrl *c){
+    unordered_map<string,unordered_map<int,vector<Ctrl*> > >
+          ::iterator it;
+    for(it=sources.begin();it!=sources.end();it++){
+        // this is the map for each source. From each entry in it, we want to remove items which
+        // have this controller.
+        unordered_map<int,vector<Ctrl*> >::iterator it2;
+        for(it2 = it->second.begin();it2!=it->second.end();it2++){
+            vector<Ctrl *> &vec = it2->second;
+            vec.erase(std::remove(vec.begin(),vec.end(),c),vec.end());
+        }
+    }
+}
+
 void pollDiamond(){
     // iterate over all the topics, polling them. If we get new data,
     // go over the indices and throw data at the ctrls for each index.

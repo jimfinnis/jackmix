@@ -14,6 +14,8 @@
 #include "monitor.h"
 #include "ctrl.h"
 
+#include "process.h"
+
 void Screen::title(const char *s){
     attrset(COLOR_PAIR(0)|A_BOLD);
     int w = MonitorThread::get()->w;
@@ -165,5 +167,25 @@ void Screen::drawHorzBar(int y, int x, int h, int w,
         attrset(COLOR_PAIR(col) | attr);
         for(int j=0;j<h;j++)
             mvaddch(y+j,x+i,' ');
+    }
+}
+
+void Screen::commandAddCtrl(Value *v){
+    InputManager *im = InputManager::getInstance();
+    
+    vector<Ctrl *>clist = Ctrl::getList();
+    vector<string> namelist;
+    
+    for(unsigned int i=0;i<clist.size();i++){
+        namelist.push_back(clist[i]->nameString);
+    }
+    
+    bool ab;
+    string n = im->getFromList("Controller to associate",namelist,&ab);
+    
+    if(!ab){
+        ProcessCommand cmd(ProcessCommandType::AddCtrl);
+        cmd.setctrl(Ctrl::createOrFind(n))->setvalptr(v);
+        Process::writeCmd(cmd);
     }
 }

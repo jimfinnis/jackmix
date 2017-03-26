@@ -42,9 +42,13 @@ enum ProcessCommandType {
           DeleteEffect,         // arg0(chain index),arg1(effect index)
           AddChannel,           // s(name),arg0(1/2 [mono/stereo])
           
-          DeleteCtrl,           // s(ctlrname)
-          DeleteCtrlAssoc,      // s(ctlrname), arg0(valindex)
+          DeleteCtrl,           // ctrl
+          DeleteCtrlAssoc,      // ctrl,vp
           
+          SetCtrlRange,         // ctrl,v,v1
+          SetCtrlRangeDefault,  // ctrl
+          NewCtrl,              // string,string2 (name and type)
+          AddCtrl,              // ctrl,vp (link value to ctrl)
           
           Dummy
 };
@@ -59,6 +63,11 @@ struct ProcessCommand {
     // various random constructors as the commands need them. Ugly.
     ProcessCommand(ProcessCommandType c){
         cmd = c;
+    }
+    
+    ProcessCommand *setcmd(ProcessCommandType c){
+        cmd = c;
+        return this;
     }
     
     ProcessCommand *setfloat(float f){
@@ -90,6 +99,11 @@ struct ProcessCommand {
         return this;
     }
     
+    ProcessCommand *setfloat1(float f){
+        v1 = f;
+        return this;
+    }
+    
     
     ProcessCommand *setstr(std::string str){
         if(str.size()>STRSIZE) throw _("string too large");
@@ -117,7 +131,7 @@ struct ProcessCommand {
     
     Channel *chan;
     Ctrl *ctrl;
-    float v;
+    float v,v1;
     Value *vp;
     int arg0; // heaven knows why I've got this name...
     int arg1;

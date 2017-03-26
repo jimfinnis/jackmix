@@ -93,6 +93,22 @@ void ChanScreen::flow(InputManager *im){
     if(cursend>(int)chan->chains.size())cursend=-1; // flag invalid send
     im->unlock();
     
+    
+    Value *curSelectedValue=NULL;
+    if(chanidx>=0 && chanidx<d->numchans){
+        switch(curparam){
+        case 0:curSelectedValue = chan->gain;break;
+        case 1:curSelectedValue = chan->pan;break;
+        default:
+            if(cursend>=0){
+                ChainFeed& f = chan->chains[cursend];
+                curSelectedValue = f.gain;
+            }
+            break;
+        }
+    }
+    
+    
     int c = im->getKey();
     
     switch(c){
@@ -163,6 +179,19 @@ void ChanScreen::flow(InputManager *im){
                   commandSendGainNudge(chan,cursend,v);break;
         }
     } break;
+    case 'c':
+        if(curSelectedValue)
+            commandAddCtrl(curSelectedValue);
+        break;
+    case 'r':
+        if(curSelectedValue && curSelectedValue->getCtrl()){
+            if(im->getKey("Delete controller association - are you sure?","yn")=='y'){
+                ProcessCommand cmd(ProcessCommandType::DeleteCtrlAssoc);
+                cmd.setctrl(curSelectedValue->getCtrl())->setvalptr(curSelectedValue);
+                Process::writeCmd(cmd);
+            }
+        }
+        break;
     case 'g':
         im->editVal("gain",chan->gain);break;
     case 'p':
@@ -210,3 +239,4 @@ void ChanScreen::commandPanNudge(struct Channel *c,float v){
     cmd.setvalptr(c->pan)->setfloat(v);
     Process::writeCmd(cmd);
 }
+    

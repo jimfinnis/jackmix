@@ -110,7 +110,9 @@ void ChainScreen::display(MonitorData *d){
             
             // name of effect
             attrset(cureffect==(int)i?effectHilight:COLOR_PAIR(0));
-            mvaddstr(y++,x,fx->name.c_str());
+            stringstream ss;
+            ss << fx->name << "(type: "+fx->p->label+")";
+            mvaddstr(y++,x,ss.str().c_str());
             
             // input connections
             for(unsigned int c=0;c<icd->size();c++){
