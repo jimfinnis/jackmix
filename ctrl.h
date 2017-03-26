@@ -84,18 +84,22 @@ public:
     /// ctrl to the source type's structures.
     Ctrl *setsource(std::string spec);
     
+    /// get the list of ctrls. Well, vector
+    static std::vector<Ctrl *>getList();
     
     /// add a value to be managed by this control. DB controllers
     /// must control DB values, but we don't check that here - we
     /// do it after all parsing.
     void addval(Value *v){
         values.push_back(v);
+        v->setctrl(this);
     }
     
     /// remove a value from association
     void remval(Value *v){
         // remove all values v from the values list
         values.erase(std::remove(values.begin(),values.end(),v),values.end());
+        v->ctrl = NULL;
     }
     
     /// set a value; will convert the input then pass it down to the

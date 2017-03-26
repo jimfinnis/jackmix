@@ -126,6 +126,7 @@ void Process::sendCmds(){
 
 void Process::processCommand(ProcessCommand& c){
     switch(c.cmd){
+    case Dummy:break;
     case NudgeValue:
         c.vp->nudge(c.v);
         break;
@@ -188,6 +189,12 @@ void Process::processCommand(ProcessCommand& c){
         break;
     case DeleteEffect:
         ChainInterface::deleteEffect(c.arg0,c.arg1);
+        break;
+    case DeleteCtrl:
+        delete c.ctrl;
+        break;
+    case DeleteCtrlAssoc:
+        c.ctrl->remval(c.vp);
         break;
     }
 }

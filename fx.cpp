@@ -18,6 +18,7 @@
 #include "fx.h"
 #include "channel.h"
 #include "save.h"
+#include "ctrl.h"
 
 using namespace std;
 
@@ -286,6 +287,15 @@ void parseEffect(Chain &c){
               printf("Param %s: %f\n",pname.c_str(),v->get());
               // and connect it
               i->connect(pname,v->getAddr());
+              
+              // we're replacing a default value! Has this somehow got a ctrl attached to it?
+              // that can only have happened if this is a duplicate entry.
+              if(i->paramsMap[pname]->getCtrl())
+                  throw _("duplicate entry in parameters? %s/%s:%s",
+                      c.name.c_str(),name.c_str(),pname.c_str());
+              
+              
+              
               delete i->paramsMap[pname];
               i->paramsMap[pname]=v;
           });

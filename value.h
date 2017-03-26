@@ -43,6 +43,9 @@ class Value {
     /// list of all values
     static std::vector<Value *> values;
     
+    /// what external controller, if any, is controlling me. Generally
+    /// used only for information (saving, monitoring).
+    class Ctrl *ctrl;
     
 public:
     Value(std::string nm){
@@ -55,6 +58,12 @@ public:
         values.push_back(this);
     }
     
+    class Ctrl *getCtrl(){
+        return ctrl;
+    }
+    
+    // remove this controller from all values
+    static void removeCtrl(Ctrl *c);    
     // list names for debug
     static void dump();
         
@@ -76,15 +85,17 @@ public:
     float mn,mx;
     /// if true, value is converted on get()
     bool db;
-    /// what external controller, if any, is controlling me. Generally
-    /// used only for information (saving, monitoring).
-    class Ctrl *ctrl;
     
     /// set the default
     Value *setdef(float def){
         deflt=def;
         return this;
     }
+    Value *setctrl(Ctrl *c){
+        ctrl = c;
+        return this;
+    }
+              
     /// set DB (decibel conversion will be done in get()))
     Value *setdb(){
         db=true;

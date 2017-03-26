@@ -27,8 +27,21 @@ Ctrl *Ctrl::createOrFind(string name){
 }
 
 Ctrl::~Ctrl() {
+    Value::removeCtrl(this);
     map.erase(nameString);
     delete ring;
+}
+
+
+vector<Ctrl *> Ctrl::getList(){
+    vector<Ctrl *> lst;
+    unordered_map<string,Ctrl *>::iterator it;
+    for(it=map.begin();it!=map.end();it++){
+        lst.push_back(it->second);
+    }
+    std::sort(lst.begin(),lst.end(),[](Ctrl *i,Ctrl *j)->bool{
+              return i->nameString.compare(j->nameString)<0;});
+    return lst;
 }
 
 

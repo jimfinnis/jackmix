@@ -20,6 +20,8 @@
 #include "colours.h"
 #include "ctrl.h"
 
+#include "screenctrl.h"
+
 class Screen *curscreen=NULL; // the current screen. LOCK IT.
 
 static InputRequest req;

@@ -40,7 +40,13 @@ enum ProcessCommandType {
           AddChain,             // s(name)
           DeleteChain,          // arg0(chain index)
           DeleteEffect,         // arg0(chain index),arg1(effect index)
-          AddChannel            // s(name),arg0(1/2 [mono/stereo])
+          AddChannel,           // s(name),arg0(1/2 [mono/stereo])
+          
+          DeleteCtrl,           // s(ctlrname)
+          DeleteCtrlAssoc,      // s(ctlrname), arg0(valindex)
+          
+          
+          Dummy
 };
 
 // this is a struct, not a union, because a lot of things can appear here together.
@@ -67,6 +73,11 @@ struct ProcessCommand {
     
     ProcessCommand *setvalptr(Value *v){
         vp = v;
+        return this;
+    }
+    
+    ProcessCommand *setctrl(Ctrl *c){
+        ctrl=c;
         return this;
     }
     
@@ -105,6 +116,7 @@ struct ProcessCommand {
     ProcessCommandType cmd;
     
     Channel *chan;
+    Ctrl *ctrl;
     float v;
     Value *vp;
     int arg0; // heaven knows why I've got this name...

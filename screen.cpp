@@ -126,9 +126,9 @@ void Screen::drawHorzBar(int y, int x, int h, int w,
     int red = w*0.9f;
     int half = w/2;
     
-    if(rv && rv->ctrl){
+    if(rv && rv->getCtrl()){
         char buf[64];
-        sprintf(buf,"(%.20s)",rv->ctrl->nameString.c_str());
+        sprintf(buf,"(%.20s)",rv->getCtrl()->nameString.c_str());
         attrset(COLOR_PAIR(0)|(bold?A_BOLD:0));
         mvaddstr(y+1,x+w-strlen(buf),buf);
     }

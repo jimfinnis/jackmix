@@ -90,7 +90,6 @@ optsdone:
         string name = getnextident();
         Ctrl *c = Ctrl::createOrFind(name);
         c->addval(v);
-        v->ctrl = c;
         
         if(tok.getnext()==T_SMOOTH){
             n = tok.getnextfloat();

@@ -23,6 +23,14 @@ void Value::updateAll(){
     }
 };
 
+void Value::removeCtrl(Ctrl *c){
+    vector<Value *>::iterator it;
+    for(it=values.begin();it!=values.end();it++){
+        Value *v = *it;
+        if(v->ctrl == c)v->ctrl=NULL;
+    }
+};
+
 void Value::dump(){
     vector<Value *>::iterator it;
     for(it=values.begin();it!=values.end();it++){
