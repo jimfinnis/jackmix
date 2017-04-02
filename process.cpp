@@ -25,10 +25,13 @@
 #include "diamond.h"
 
 #include "process.h"
+#include "midi.h"
+#include <jack/midiport.h>
 
 using namespace std;
 
 static jack_port_t *output[2];
+static jack_port_t *midi_in;
 
 // statics of Process
 volatile bool Process::parsedAndReady=false;
@@ -67,6 +70,11 @@ void Process::initJack(){
     jack_set_sample_rate_callback(client, callbackSrate, 0);
     jack_on_shutdown(client, callbackShutdown, 0);
     
+    midi_in = jack_port_register(client,
+                                 "midi",
+                                 JACK_DEFAULT_MIDI_TYPE,
+                                 JackPortIsInput,0);
+                                 
     
     output[0] = jack_port_register(
                                    client, 
@@ -225,7 +233,31 @@ void Process::callbackShutdown(void *arg){
     exit(1);
 }    
 
-void Process::subproc(float *left,float *right,int offset,int n){
+static void *midbuf;
+static jack_nframes_t evct;
+
+void Process::subproc(float *left,float *right,
+                        jack_nframes_t offset,
+                        jack_nframes_t n){
+    // we can't check every damn frame whether a midi event has gone off,
+    //but we can at least check every subproc.
+    
+    for(unsigned int i=0;i<evct;i++){
+        jack_midi_event_t e;
+        jack_midi_event_get(&e,midbuf,i);
+        jack_midi_data_t d = *(e.buffer);
+        if((d & 0xf0) == 0xb0){ // CC
+            if(e.time >=offset && e.time < offset+n){
+                // the event occurred in the correct time slot
+                int chan = d & 0xf;
+                int cn = e.buffer[1]; // cc number
+                int cv = e.buffer[2]; // value
+                
+                // pass this to the controllers
+                feedMidi(chan,cn,cv);
+            }
+        }
+    }
     
     // run through all the channels, converting to stereo and panning
     // as required, mixing them into stereo if needed. Add the resulting
@@ -248,6 +280,10 @@ void Process::subproc(float *left,float *right,int offset,int n){
 
 int Process::callbackProcess(jack_nframes_t nframes, void *arg){
     if(!parsedAndReady)return 0;
+    
+    // get midi event buffer and count
+    midbuf = jack_port_get_buffer(midi_in,nframes);
+    evct=jack_midi_get_event_count(midbuf);
     
     // every now and then, read data out of the ring buffers and update
     // the values (which use LPFs).

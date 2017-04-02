@@ -21,7 +21,7 @@ using namespace diamondapparatus;
 
 // so each topic has a vector of controls indexed by index within the topic.
 //
-unordered_map<string,unordered_map<int,vector<Ctrl*> > >sources;
+static unordered_map<string,unordered_map<int,vector<Ctrl*> > >sources;
 
 void initDiamond(){
     try {

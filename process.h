@@ -67,7 +67,9 @@ struct Process {
         
 
     // this is called repeatedly by process to do the mixing.
-    static void subproc(float *left,float *right,int offset,int n);
+    static void subproc(float *left,float *right,
+                        jack_nframes_t offset,
+                        jack_nframes_t n);
     
     // the main process - static so it's just a function and can
     // be used as a callback

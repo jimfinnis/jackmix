@@ -8,6 +8,7 @@
 
 #include "ctrl.h"
 #include "diamond.h"
+#include "midi.h"
 #include "save.h"
 
 using namespace std;
@@ -29,7 +30,15 @@ Ctrl *Ctrl::createOrFind(string name,bool nocreate){
 }
 
 Ctrl::~Ctrl() {
-    removeDiamondReferences(this);
+    switch(sourceType){
+    case DIAMOND:
+        removeDiamondReferences(this);
+        break;
+    case MIDI:
+        removeMidiReferences(this);
+        break;
+    default:break;
+    }
     Value::removeCtrl(this);
     map.erase(nameString);
     delete ring;

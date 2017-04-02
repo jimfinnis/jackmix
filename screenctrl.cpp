@@ -214,20 +214,25 @@ void CtrlScreen::flow(InputManager *im){
             bool ab;
             string n = im->getString("Controller name",&ab);
             if(!ab){
+                ab=true;
                 if(Ctrl::createOrFind(n,true))
                     im->setStatus("Controller already exists!",4);
                 else {
                     ProcessCommand cmd(ProcessCommandType::NewCtrl);
                     cmd.setstr(n);
-                    int typekey = im->getKey("Controller type (MIDI, Diamond, quit)","mdq");
-                    if(typekey!='q'){
-                        string spec = im->getString("Source specification",&ab);
-                        if(!ab){
-                            // DEAL WITH THE TYPE when you do midi ctrl, perhaps by prebuilding
-                            // a spec string.
-                            cmd.setstr2(spec);
-                            Process::writeCmd(cmd);
-                        }
+                    string spec;
+                    switch(im->getKey("Controller type (MIDI, Diamond, quit)","mdq")){
+                    case 'm':
+                        im->setStatus("Not supported",4);break;
+                        spec = im->getString("MIDI CC number",&ab);break;
+                    case 'd':
+                        spec = im->getString("Topic and item (.e.g /foo:0)",&ab);break;
+                    case 'q':
+                    default:break;
+                    }
+                    if(!ab){
+                        cmd.setstr2(spec);
+                        Process::writeCmd(cmd);
                     }
                 }
             }
