@@ -55,6 +55,7 @@ void noguiloop(){
         usleep(100000);
         static MonitorData mdat;
         Process::pollMonRing(&mdat);
+        poll();
     }
 }
 

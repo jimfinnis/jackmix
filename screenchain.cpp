@@ -401,6 +401,30 @@ void ChainScreen::flow(InputManager *im){
         if(curchain>=0 && chainData)
             addEffect(im);
         break;
+    case 'c':
+        if(chainListMode == Params && chainData && cureffect>=0 && cureffect<(int)chainData->fx.size()){
+            PluginInstance *fx = chainData->fx[cureffect];
+            if(cureffectparam>=0 && cureffectparam<(int)fx->paramsList.size()){
+                Value *p = fx->paramsMap[fx->paramsList[cureffectparam]];
+                commandAddCtrl(p);
+            }
+        }
+        break;
+    case 'r':
+        if(chainListMode == Params && chainData && cureffect>=0 && cureffect<(int)chainData->fx.size()){
+            PluginInstance *fx = chainData->fx[cureffect];
+            if(cureffectparam>=0 && cureffectparam<(int)fx->paramsList.size()){
+                Value *p = fx->paramsMap[fx->paramsList[cureffectparam]];
+                if(p->getCtrl()){
+                    if(im->getKey("Delete controller association - are you sure?","yn")=='y'){
+                        ProcessCommand cmd(ProcessCommandType::DeleteCtrlAssoc);
+                        cmd.setctrl(p->getCtrl())->setvalptr(p);
+                        Process::writeCmd(cmd);
+                    }
+                }
+            }
+        }
+        break;
     case 9: // tab
         switch(chainListMode){
         case Chain:chainListMode=Effects;break;

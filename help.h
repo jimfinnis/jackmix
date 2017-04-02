@@ -59,6 +59,8 @@ static const char *MainHelpCol2[] = {
     "{a}        - add chain",
     "{e}        - add effect",
     "{i}        - remap effect input",
+    "{c}        - associate ctrl",
+    "{r}        - remove ctrl",
     "[     Chain mode: list]",
     "{UP/DOWN}  - select chain",
     "{DEL}      - remove chain",
