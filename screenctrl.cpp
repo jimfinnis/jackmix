@@ -93,11 +93,13 @@ void CtrlScreen::display(MonitorData *d){
         // now the other parameters
         attrset(COLOR_PAIR(PAIR_HILIGHT));
         mvaddstr(0,60,"Source: ");
-        attrset(0);
+        attrset(c->sourceString=="input"?COLOR_PAIR(PAIR_REDTEXT)|A_BOLD:COLOR_PAIR(PAIR_HILIGHT));
         addstr(c->sourceString.c_str());
+        
+        const char *sname = c->source?c->source->getName():"NO SOURCE";
         attrset(COLOR_PAIR(PAIR_HILIGHT));
-        addch('(');
-        addstr(c->source?c->source->getName():"NO SOURCE");
+        addstr(" (");
+        addstr(sname);
         addch(')');
         
         mvaddstr(1,60,"Input range: ");
@@ -209,6 +211,7 @@ void CtrlScreen::flow(InputManager *im){
     case 'a':
         {
             bool ab;
+            int typek = im->getKey("Controller type (MIDI, Diamond, quit)","mdq");
             string n = im->getString("Controller name",&ab);
             if(!ab){
                 if(Ctrl::createOrFind(n,true))
@@ -218,9 +221,9 @@ void CtrlScreen::flow(InputManager *im){
                     cmd.setstr(n);
                     string spec;
                     CtrlSource *source=NULL;
-                    switch(im->getKey("Controller type (MIDI, Diamond, quit)","mdq")){
+                    switch(typek){
                     case 'm':
-                        spec = im->getString("Channel and CC number (e.g. 1:10)",&ab);
+                        spec = im->getString("Channel and CC number (e.g. 1:10), or \"input\" to wait for data",&ab);
                         source = &midi;
                         break;
                     case 'd':

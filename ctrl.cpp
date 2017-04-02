@@ -87,12 +87,13 @@ void Ctrl::pollAllCtrlRings(){
 
 
 Ctrl *Ctrl::setsource(CtrlSource *s,string spec){
+    sourceString = spec;
     const char *err = s->add(spec,this);
     if(err==NULL){
-        sourceString = spec;
         s->setrangedefault(this);
     } else {
-        printf("Error : %s\n",err);
+        sourceString = "error";
+//        printf("Error : %s\n",err);
     }
     return this;
 }
