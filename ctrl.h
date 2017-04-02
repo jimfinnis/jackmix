@@ -14,13 +14,7 @@
 #include <algorithm>
 #include "value.h"
 #include "ringbuffer.h"
-
-/// types of source (midi, diamond etc)
-enum SourceType {
-    NONE, // shouldn't happen
-          DIAMOND,
-          MIDI
-};
+#include "ctrlsource.h"
 
 /// this is a control channel, used to manage a list of values.
 /// It has an input range, which converts whatever the incoming
@@ -63,10 +57,16 @@ public:
     /// name string copy, for information only. Set in setsource()
     std::string nameString;
     
-    /// source string copy, for information only. Set in setsource()
+    /// source string copy, for information only. Set in setsource().
+    /// Is not sufficient to describe the type!
     std::string sourceString;
-    /// the type of the source
-    SourceType sourceType;
+    
+    /// the singleton the control data comes from
+    CtrlSource *source;
+    
+    /// source information, parsed from the source string
+    /// and put in here by the source.
+    CtrlSourceInfo *sourceInfo;
     
     /// A list of the values this ctrl controls. Read in the controller
     /// screen, but fGs don't change it.
@@ -75,7 +75,8 @@ public:
     
     Ctrl(std::string name){
         nameString = name;
-        sourceType = NONE;
+        source = NULL;
+        sourceInfo = NULL;
         inmin=0;inmax=1;
         ring = new RingBuffer<float>(20);
     }
@@ -87,24 +88,11 @@ public:
         return this;
     }
     
-    // set default in-range for this controller type
-    Ctrl *setrangedefault(){
-        switch(sourceType){
-        case MIDI:
-            return setinrange(0,127);
-        case NONE:
-        case DIAMOND:
-        default:
-            return setinrange(0,1);
-        }
-    }
-            
         
     
-    /// sets the source for a control - parses the spec crudely
-    /// to work out what type of source, and calls code to add the
-    /// ctrl to the source type's structures.
-    Ctrl *setsource(std::string spec);
+    /// set the source given the source singleton and a specification string,
+    /// the format of which depends on the source
+    Ctrl *setsource(CtrlSource *s,std::string spec);
     
     /// get the list of ctrls. Well, vector
     static std::vector<Ctrl *>getList();

@@ -15,6 +15,7 @@
 using namespace std;
 using namespace diamondapparatus;
 
+DiamondSource diamond;
 
 // this gets hairy. Each topic can have a number of indices within it,
 // and each index can have a number of ctrls.
@@ -23,7 +24,7 @@ using namespace diamondapparatus;
 //
 static unordered_map<string,unordered_map<int,vector<Ctrl*> > >sources;
 
-void initDiamond(){
+void DiamondSource::init(){
     try {
         diamondapparatus::init();
     } catch (DiamondException e){
@@ -31,7 +32,7 @@ void initDiamond(){
     }
 }
 
-void addDiamondSource(string source,Ctrl *c){
+const char *DiamondSource::add(string source,Ctrl *c){
     try {
         vector<string> v = split(source,':');
         int index;
@@ -44,28 +45,26 @@ void addDiamondSource(string source,Ctrl *c){
             // subscribe if the topic is new
             subscribe(v[0].c_str());
         }
+        
+        c->sourceInfo = new DiamondSourceInfo(v[0],index);
+        c->source = this;
     
         sources[v[0]][index].push_back(c);
     } catch (DiamondException e){
-        throw _("Fatal error in Diamond Apparatus: %s\n",e.what());
+        //        printf("Fatal error in Diamond Apparatus: %s\n",e.what());
+        return e.what();
     }
+    return NULL;
 }
 
-void removeDiamondReferences(Ctrl *c){
-    unordered_map<string,unordered_map<int,vector<Ctrl*> > >
-          ::iterator it;
-    for(it=sources.begin();it!=sources.end();it++){
-        // this is the map for each source. From each entry in it, we want to remove items which
-        // have this controller.
-        unordered_map<int,vector<Ctrl*> >::iterator it2;
-        for(it2 = it->second.begin();it2!=it->second.end();it2++){
-            vector<Ctrl *> &vec = it2->second;
-            vec.erase(std::remove(vec.begin(),vec.end(),c),vec.end());
-        }
-    }
+void DiamondSource::remove(Ctrl *c){
+    DiamondSourceInfo *info = (DiamondSourceInfo*)(c->sourceInfo);
+    vector<Ctrl *>& v = sources[info->topic][info->index];
+    v.erase(std::remove(v.begin(),v.end(),c),v.end());
+    delete info;
 }
 
-void pollDiamond(){
+void DiamondSource::poll(){
     // iterate over all the topics, polling them. If we get new data,
     // go over the indices and throw data at the ctrls for each index.
     
@@ -74,6 +73,7 @@ void pollDiamond(){
     
     for(it=sources.begin();it!=sources.end();it++){
         const char *s = it->first.c_str();
+        
         Topic t = get(s,GET_WAITNONE);
         if(t.isValid() && t.state==TOPIC_CHANGED){
             // iterate over the indices stored for this topic

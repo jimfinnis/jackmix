@@ -208,12 +208,12 @@ void Process::processCommand(ProcessCommand& c){
         c.ctrl->setinrange(c.v,c.v1);
         break;
     case SetCtrlRangeDefault:
-        c.ctrl->setrangedefault();
+        c.ctrl->source->setrangedefault(c.ctrl);
         break;
     case NewCtrl:
         {
             Ctrl *ctrl = Ctrl::createOrFind(c.s);
-            ctrl->setsource(c.s2);
+            ctrl->setsource(c.source,c.s2);
         }
         break;
     case AddCtrl:
@@ -253,8 +253,10 @@ void Process::subproc(float *left,float *right,
                 int cn = e.buffer[1]; // cc number
                 int cv = e.buffer[2]; // value
                 
+//                printf("Midi got: chan %d, cc %d, val %d\n",chan,cn,cv);
+                
                 // pass this to the controllers
-                feedMidi(chan,cn,cv);
+                midi.feed(chan+1,cn,cv);
             }
         }
     }

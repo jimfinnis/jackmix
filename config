@@ -11,10 +11,10 @@ chans {
     stereo
 }
 ctrl {
-  pan1: "/pans:1" in 0:1024,
-  gain1: "/gains:1" in 0:1024,
-  pan0: "/pans:0" in 0:1024,
-  gain0: "/gains:0" in 0:1024
+  pan1: diamond "/pans:1" in 0:1024,
+  gain1: diamond "/gains:1" in 0:1024,
+  pan0: diamond "/pans:0" in 0:1024,
+  gain0: diamond "/gains:0" in 0:1024
 }
 chain {
   revs {

@@ -47,7 +47,7 @@ enum ProcessCommandType {
           
           SetCtrlRange,         // ctrl,v,v1
           SetCtrlRangeDefault,  // ctrl
-          NewCtrl,              // string,string2 (name and type)
+          NewCtrl,              // string,source (spec and type)
           AddCtrl,              // ctrl,vp (link value to ctrl)
           
           Dummy
@@ -104,6 +104,11 @@ struct ProcessCommand {
         return this;
     }
     
+    ProcessCommand *setctrlsource(class CtrlSource *s){
+        source = s;
+        return this;
+    }
+    
     
     ProcessCommand *setstr(std::string str){
         if(str.size()>STRSIZE) throw _("string too large");
@@ -125,11 +130,14 @@ struct ProcessCommand {
         strcpy(s4,str.c_str());
         return this;
     }        
+                                                 
+    
     
     
     ProcessCommandType cmd;
     
     Channel *chan;
+    class CtrlSource *source;
     Ctrl *ctrl;
     float v,v1;
     Value *vp;

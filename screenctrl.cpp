@@ -13,6 +13,9 @@
 #include "screenmain.h"
 #include "screenctrl.h"
 
+#include "midi.h"
+#include "diamond.h"
+
 #include <ncurses.h>
 #include <sstream>
 
@@ -93,15 +96,9 @@ void CtrlScreen::display(MonitorData *d){
         attrset(0);
         addstr(c->sourceString.c_str());
         attrset(COLOR_PAIR(PAIR_HILIGHT));
-        switch(c->sourceType){
-        case DIAMOND:
-            addstr(" (DiamondApparatus)");break;
-        case MIDI:
-            addstr(" (MIDI CC)");break;
-        case NONE:
-        default:
-            addstr(" (NO SOURCE)");break;
-        }
+        addch('(');
+        addstr(c->source?c->source->getName():"NO SOURCE");
+        addch(')');
         
         mvaddstr(1,60,"Input range: ");
         attrset(0);
@@ -214,23 +211,27 @@ void CtrlScreen::flow(InputManager *im){
             bool ab;
             string n = im->getString("Controller name",&ab);
             if(!ab){
-                ab=true;
                 if(Ctrl::createOrFind(n,true))
                     im->setStatus("Controller already exists!",4);
                 else {
                     ProcessCommand cmd(ProcessCommandType::NewCtrl);
                     cmd.setstr(n);
                     string spec;
+                    CtrlSource *source=NULL;
                     switch(im->getKey("Controller type (MIDI, Diamond, quit)","mdq")){
                     case 'm':
-                        im->setStatus("Not supported",4);break;
-                        spec = im->getString("MIDI CC number",&ab);break;
+                        spec = im->getString("Channel and CC number (e.g. 1:10)",&ab);
+                        source = &midi;
+                        break;
                     case 'd':
-                        spec = im->getString("Topic and item (.e.g /foo:0)",&ab);break;
+                        spec = im->getString("Topic and item (e.g. /foo:0)",&ab);
+                        source = &diamond;
+                        break;
                     case 'q':
                     default:break;
                     }
-                    if(!ab){
+                    if(source){
+                        cmd.setctrlsource(source);
                         cmd.setstr2(spec);
                         Process::writeCmd(cmd);
                     }

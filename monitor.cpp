@@ -250,6 +250,10 @@ void MonitorThread::loop(){
             displayStatus();
         refresh();
         usleep(10000);
+        
+        // and poll things - MIDI, diamond etc.
+        extern void poll();
+        poll();
     }
 }
 

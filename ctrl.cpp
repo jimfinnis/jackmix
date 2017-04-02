@@ -30,16 +30,7 @@ Ctrl *Ctrl::createOrFind(string name,bool nocreate){
 }
 
 Ctrl::~Ctrl() {
-    switch(sourceType){
-    case DIAMOND:
-        removeDiamondReferences(this);
-        break;
-    case MIDI:
-        removeMidiReferences(this);
-        break;
-    default:break;
-    }
-    Value::removeCtrl(this);
+    if(source)source->remove(this);
     map.erase(nameString);
     delete ring;
 }
@@ -62,7 +53,7 @@ void Ctrl::checkAllCtrlsForSource(){
     unordered_map<string,Ctrl *>::iterator it;
     for(it=map.begin();it!=map.end();it++){
         Ctrl *c = it->second;
-        if(c->sourceType == NONE){
+        if(c->source == NULL){
             string s = ("ctrl '"+it->first+ "' has no source defined");
             cout << s << endl;
         }
@@ -95,16 +86,19 @@ void Ctrl::pollAllCtrlRings(){
 }
 
 
-Ctrl *Ctrl::setsource(string spec){
-    sourceString = spec;
-    // just assume diamond for now
-    addDiamondSource(spec,this);
-    sourceType=DIAMOND;
+Ctrl *Ctrl::setsource(CtrlSource *s,string spec){
+    const char *err = s->add(spec,this);
+    if(err==NULL){
+        sourceString = spec;
+        s->setrangedefault(this);
+    } else {
+        printf("Error : %s\n",err);
+    }
     return this;
 }
 
 void Ctrl::save(ostream& out){
-    out << "  " << nameString << ": \"" << sourceString << "\"";
+    out << "  " << nameString << ": " << source->getName() << " \"" << sourceString << "\"";
     out << " in " << inmin << ":" << inmax;
 }
 
@@ -117,7 +111,7 @@ void Ctrl::saveAll(ostream &out){
         stringstream ss;
         Ctrl *c = it->second;
         // only bother with ctrls we actually have sources for 
-        if(c->sourceType != NONE){ 
+        if(c->source != NULL){ 
             c->save(ss);
             strs.push_back(ss.str());
         }

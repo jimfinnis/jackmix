@@ -15,6 +15,9 @@
 #include "process.h"
 #include "parser.h"
 
+#include "diamond.h"
+#include "midi.h"
+
 Tokeniser tok;
 
 // values are <number>['('<ctrl>')'], where <number> might be "default"
@@ -167,6 +170,18 @@ void parseCtrl(){
     if(tok.getnext()!=T_COLON)
         expected("':' after ctrl name");
     
+    CtrlSource *source;
+    switch(tok.getnext()){
+    case T_DIAMOND:
+        source = &diamond;
+        break;
+    case T_MIDI:
+        source = &midi;
+        break;
+    default:expected("Expected a ctrl source name ('midi', 'diamond')");
+    }
+        
+    
     if(tok.getnext()!=T_STRING)
         expected("string (ctrl source spec)");
     
@@ -175,7 +190,8 @@ void parseCtrl(){
     // creating the ctrl will set the default ranges
     
     Ctrl *c = Ctrl::createOrFind(name);
-    c->setsource(spec);
+    
+    c->setsource(source,spec);
     
     // get the in-range, which converts to 0-1.
     

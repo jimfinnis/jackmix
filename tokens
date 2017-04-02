@@ -48,3 +48,6 @@ max: T_MAX
 plugins: T_PLUGINS
 names: T_NAMES
 from: T_FROM
+
+diamond : T_DIAMOND
+midi : T_MIDI

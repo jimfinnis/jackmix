@@ -46,7 +46,7 @@ extern void parseConfig(const char *filename);
  */
 
 void poll(){
-    pollDiamond();
+    diamond.poll();
 }
     
 
@@ -55,7 +55,6 @@ void noguiloop(){
         usleep(100000);
         static MonitorData mdat;
         Process::pollMonRing(&mdat);
-        poll();
     }
 }
 
@@ -110,7 +109,7 @@ int main(int argc,char *argv[]){
         // initialise data structures
         Process::init();
         // initialise comms
-        initDiamond();
+        diamond.init();
         // initialise Jack
         Process::initJack();
         

@@ -46,6 +46,8 @@ static const char *MainHelpCol1[] = {
     "{DEL}      - delete send",
     "{t}        - toggle send pre/post",
     "{a}        - add send",
+    "{c}        - associate ctrl",
+    "{r}        - remove ctrl",
     NULL
 };
 
