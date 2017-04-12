@@ -211,7 +211,7 @@ void CtrlScreen::flow(InputManager *im){
     case 'a':
         {
             bool ab;
-            int typek = im->getKey("Controller type (MIDI, Diamond, quit)","mdq");
+            int typek = im->getKey("Controller type (MIDI, Diamond, abort)","mda");
             string n = im->getString("Controller name",&ab);
             if(!ab){
                 if(Ctrl::createOrFind(n,true))
@@ -227,10 +227,14 @@ void CtrlScreen::flow(InputManager *im){
                         source = &midi;
                         break;
                     case 'd':
+#if DIAMOND
                         spec = im->getString("Topic and item (e.g. /foo:0)",&ab);
                         source = &diamond;
+#else
+                        im->setStatus("Diamond Apparatus not supported",4);
+#endif
                         break;
-                    case 'q':
+                    case 'a':
                     default:break;
                     }
                     if(source){

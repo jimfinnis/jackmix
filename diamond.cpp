@@ -6,14 +6,20 @@
 
 #include <vector>
 #include <unordered_map>
+#if DIAMOND
 #include <diamondapparatus/diamondapparatus.h>
+#endif
+
 #include "ctrl.h"
 #include "exception.h"
 #include "diamond.h"
 #include "stringsplit.h"
 
 using namespace std;
+
+#if DIAMOND
 using namespace diamondapparatus;
+#endif
 
 DiamondSource diamond;
 
@@ -25,14 +31,17 @@ DiamondSource diamond;
 static unordered_map<string,unordered_map<int,vector<Ctrl*> > >sources;
 
 void DiamondSource::init(){
+#if DIAMOND
     try {
         diamondapparatus::init();
     } catch (DiamondException e){
         throw _("Fatal error in Diamond Apparatus: %s\n",e.what());
     }
+#endif
 }
 
 const char *DiamondSource::add(string source,Ctrl *c){
+#if DIAMOND
     try {
         vector<string> v = split(source,':');
         int index;
@@ -54,20 +63,26 @@ const char *DiamondSource::add(string source,Ctrl *c){
         //        printf("Fatal error in Diamond Apparatus: %s\n",e.what());
         return e.what();
     }
+#else
+    throw "Diamond Apparatus not supported";
+#endif
     return NULL;
 }
 
 void DiamondSource::remove(Ctrl *c){
+#if DIAMOND
     DiamondSourceInfo *info = (DiamondSourceInfo*)(c->sourceInfo);
     vector<Ctrl *>& v = sources[info->topic][info->index];
     v.erase(std::remove(v.begin(),v.end(),c),v.end());
     delete info;
+#endif
 }
 
 void DiamondSource::poll(){
     // iterate over all the topics, polling them. If we get new data,
     // go over the indices and throw data at the ctrls for each index.
     
+#if DIAMOND
     unordered_map<string,unordered_map<int,vector<Ctrl*> > >
           ::iterator it;
     
@@ -95,5 +110,6 @@ void DiamondSource::poll(){
             }
         }
     }
+#endif
 }
 

@@ -167,7 +167,8 @@ void MainScreen::flow(InputManager *im){
         im->go(&scrHelp);
         break;
     case 'a':{
-        c=im->getKey("Stereo or mono","12sm");
+        c=im->getKey("Stereo or mono ('a' to abort)","12sma");
+        if(c=='a')break;
         int chans = (c=='1' || c=='m') ? 1:2;
         bool ab,isret;
         string name = im->getString("New channel name",&ab);

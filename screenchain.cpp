@@ -336,7 +336,7 @@ void ChainScreen::remapOutput(InputManager *im){
     
     // first pick an output
     
-    char c = im->getKey("Remapping an output of this chain. Enter which one (or A to abort)","lra");
+    char c = im->getKey("Remapping an output of this chain. Enter which one (or 'a' to abort)","lra");
     if(c=='a')return;
     
     int chan = (c=='l')?0:1;
