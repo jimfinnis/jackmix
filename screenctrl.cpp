@@ -33,8 +33,12 @@ void CtrlScreen::display(MonitorData *d){
     
     vector<Ctrl *> lst = Ctrl::getList();
     int lsize = lst.size();
-    if(curctrl<0)curctrl=lsize-1;
-    if(curctrl>=lsize)curctrl=0;
+    if(lsize==0)
+        curctrl=-1;
+    else {
+        if(curctrl<0)curctrl=lsize-1;
+        if(curctrl>=lsize)curctrl=0;
+    }
     
     // pagination of ctrl and val lists
     int w,h;
@@ -119,8 +123,12 @@ void CtrlScreen::display(MonitorData *d){
 void CtrlScreen::flow(InputManager *im){
     vector<Ctrl *> lst = Ctrl::getList();
     int lsize = lst.size();
-    if(curctrl<0)curctrl=lsize-1;
-    if(curctrl>=lsize)curctrl=0;
+    if(lsize==0)
+        curctrl=-1;
+    else {
+        if(curctrl<0)curctrl=lsize-1;
+        if(curctrl>=lsize)curctrl=0;
+    }
     
     Ctrl *ctrl = curctrl>=0 ? lst[curctrl] : NULL;
     if(!ctrl)mode = CTRLLIST;
