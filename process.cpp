@@ -93,8 +93,9 @@ void Process::initJack(){
 }
 
 void Process::shutdown(){
-    jack_deactivate(client);usleep(10000);
-    jack_client_close(client);
+    //    jack_deactivate(client);
+    //usleep(10000);
+    //    jack_client_close(client);
     exit(0);
 }
 

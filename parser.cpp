@@ -287,8 +287,10 @@ void parseConfig(const char *file){
             parseConfigData(fbuf);
             free(fbuf);
             
-        } else 
-            throw _("cannot open config file '%s'",file);
+        } else {
+            printf("cannot open config file '%s'",file);
+            return ;
+        }
     } catch(string s){
         stringstream ss;
         ss << "at line " << tok.getline() << ": " << s;

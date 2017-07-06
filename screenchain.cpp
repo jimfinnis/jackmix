@@ -56,6 +56,16 @@ void ChainScreen::display(MonitorData *d){
     MonitorThread::get()->lock();
     if(curchain>=(int)chainlist.size())
         curchain=((int)chainlist.size())-1;
+    
+    
+    // if we somehow have a no current chain but there are
+    // chains, pick the last one - it generally means one
+    // was added and we haven't noticed yet. Also force regen.
+    if(curchain<0 && chainlist.size()){
+        curchain = chainlist.size()-1;
+        forceRegen=true;
+    }
+    
     if(forceRegen){
         regenChainData(curchain);
         forceRegen=false;

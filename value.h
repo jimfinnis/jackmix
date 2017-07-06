@@ -56,6 +56,7 @@ public:
         mn=0;mx=1;
         ctrl=NULL;
         values.push_back(this);
+        optsset=0;
     }
     
     class Ctrl *getCtrl(){

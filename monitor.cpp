@@ -232,6 +232,8 @@ void MonitorThread::loop(){
         // DEBUGGING - shows a running counter so we can check we're not stalled
         static unsigned int ct=0;
         mvprintw(h-1,w-17,"%08u %08u",ct++,monpackct);
+        extern unsigned long diamondMsgCt;
+        mvprintw(h-2,w-17,"%08u",diamondMsgCt);
         
         // do the display, first the screen
         

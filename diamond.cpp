@@ -22,6 +22,7 @@ using namespace diamondapparatus;
 #endif
 
 DiamondSource diamond;
+unsigned long diamondMsgCt=0L;
 
 // this gets hairy. Each topic can have a number of indices within it,
 // and each index can have a number of ctrls.
@@ -105,6 +106,7 @@ void DiamondSource::poll(){
                 vector<Ctrl*>::iterator it3;
                 for(it3 = it2->second.begin();
                     it3!=it2->second.end();it3++){
+                    diamondMsgCt++;
                     (*it3)->setval(val);
                 }
             }
