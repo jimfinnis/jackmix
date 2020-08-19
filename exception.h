@@ -4,8 +4,8 @@
  *
  */
 
-#ifndef __EXCEPTION_H
-#define __EXCEPTION_H
+#ifndef __EXCEPTION2_H
+#define __EXCEPTION2_H
 
 #include <string>
 #include <stdarg.h>
